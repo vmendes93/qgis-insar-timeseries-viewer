@@ -66,6 +66,7 @@ PT_TO_EN = {
     "Recolher o painel de configurações": "Collapse the settings panel",
     # Orbit
     "Automática": "Automatic",
+    "Automático": "Automatic",
     "Ascendente": "Ascending",
     "Descendente": "Descending",
     "Não especificada": "Unspecified",
@@ -85,6 +86,7 @@ PT_TO_EN = {
     "Adicionar à seleção": "Add to selection",
     "Remover da seleção": "Remove from selection",
     "Operação:": "Operation:",
+    "{description}: {found} ponto(s) encontrado(s); {operation}; {selected} ponto(s) selecionado(s) ao final.": "{description}: {found} point(s) found; {operation}; {selected} point(s) selected in total.",
     "Nenhuma área aplicada nesta sessão.": "No area has been applied in this session.",
     "Adicione ao menos três vértices. Botão direito conclui; Esc cancela.": "Add at least three vertices. Right-click to finish; Esc to cancel.",
     "Desenho da área cancelado.": "Area drawing canceled.",
