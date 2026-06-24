@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>InSAR Time Series Viewer 1.0.0</title>
+<style>
+body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;max-width:940px;margin:2rem auto;padding:0 1.2rem;line-height:1.55;color:#202124}h1,h2{color:#123b63}code{background:#f1f3f4;padding:.1rem .3rem;border-radius:3px}.note{border-left:4px solid #3b78a8;padding:.6rem 1rem;background:#f5f9fc}.small{font-size:.9rem;color:#5f6368}a{color:#145a92}</style>
+</head>
+<body>
+<h1>InSAR Time Series Viewer <span class="small">v1.0.0</span></h1>
+<p>Open-source QGIS plugin for viewing, comparing, averaging, and exporting point-based InSAR displacement time series stored in <code>DYYYYMMDD</code> fields.</p>
+<h2>Quick start</h2>
+<ol><li>Load a compatible point layer.</li><li>Open <strong>Vector → Time Series Viewer → InSAR Time Series Viewer</strong>.</li><li>Select points or choose a polygon workflow.</li><li>Select a display mode and configure the chart.</li><li>Export to PNG, SVG, or PDF when needed.</li></ol>
+<h2>Required fields</h2>
+<p>The layer must contain at least two valid acquisition fields named <code>DYYYYMMDD</code> and one complete component pair:</p>
+<ul><li>LOS: <code>VEL</code> and <code>V_STDEV</code></li><li>Vertical: <code>VEL_V</code> and <code>V_STDEV_V</code></li><li>East-west: <code>VEL_E</code> and <code>V_STDEV_E</code></li></ul>
+<p><code>999</code>, null, NaN, and non-finite observations are treated as missing. <code>CODE</code> is used only as a display label.</p>
+<h2>Visualization</h2>
+<ul><li>Single, overlaid, and separate charts.</li><li>Selected-point and per-polygon means.</li><li>Interactive hover and optional solid red linear trendlines.</li><li>Configurable axes, gridlines, shaded periods, and additional attributes.</li><li>Optional generic plugin watermark, disabled by default.</li></ul>
+<div class="note"><strong>Important:</strong> the trendline is calculated locally for visualization. It does not replace the velocity value supplied with the source product.</div>
+<h2>Support and source</h2>
+<p>Documentation, source code, and issue reporting are available in the public GitHub repository listed in the plugin metadata.</p>
+<hr><p class="small">InSAR Time Series Viewer 1.0.0 · GPL-2.0-or-later</p>
+</body>
+</html>

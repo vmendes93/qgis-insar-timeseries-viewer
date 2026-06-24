@@ -1,0 +1,60 @@
+name: Bug report
+description: Report a reproducible defect using sanitized information.
+title: "bug: "
+labels: [bug]
+body:
+  - type: input
+    id: qgis-version
+    attributes:
+      label: QGIS version
+      placeholder: 3.44.0
+    validations:
+      required: true
+  - type: input
+    id: plugin-version
+    attributes:
+      label: Plugin version
+      placeholder: 1.0.0
+    validations:
+      required: true
+  - type: dropdown
+    id: operating-system
+    attributes:
+      label: Operating system
+      options: [Windows, Linux, macOS, Other]
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Problem
+      description: Describe the actual and expected behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      placeholder: |
+        1. Load a point layer with...
+        2. Select...
+        3. Open...
+    validations:
+      required: true
+  - type: textarea
+    id: schema
+    attributes:
+      label: Sanitized layer schema
+      description: List relevant field names and geometry type. Do not attach confidential data.
+  - type: textarea
+    id: logs
+    attributes:
+      label: QGIS log or traceback
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Data-safety confirmation
+      options:
+        - label: I removed client names, credentials, coordinates, and confidential project data.
+          required: true

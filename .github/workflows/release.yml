@@ -1,0 +1,44 @@
+name: Release package
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify tag matches metadata version
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          VERSION=$(python - <<'PY'
+          import configparser
+          parser = configparser.ConfigParser(interpolation=None)
+          parser.read('insar_timeseries_viewer/metadata.txt', encoding='utf-8')
+          print(parser['general']['version'])
+          PY
+          )
+          test "$RELEASE_TAG" = "v$VERSION"
+
+      - name: Validate and package
+        run: |
+          python scripts/validate_release.py
+          python scripts/package_plugin.py
+
+      - name: Attach package to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload "$RELEASE_TAG" dist/* --clobber

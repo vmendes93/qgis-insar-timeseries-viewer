@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Visualizador de Séries Temporais InSAR 1.0.0</title>
+<style>
+body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;max-width:940px;margin:2rem auto;padding:0 1.2rem;line-height:1.55;color:#202124}h1,h2{color:#123b63}code{background:#f1f3f4;padding:.1rem .3rem;border-radius:3px}.note{border-left:4px solid #3b78a8;padding:.6rem 1rem;background:#f5f9fc}.small{font-size:.9rem;color:#5f6368}</style>
+</head>
+<body>
+<h1>Visualizador de Séries Temporais InSAR <span class="small">v1.0.0</span></h1>
+<p>Plugin open source do QGIS para visualizar, comparar, calcular médias e exportar séries temporais de deslocamento InSAR armazenadas em campos <code>DYYYYMMDD</code>.</p>
+<h2>Início rápido</h2>
+<ol><li>Carregue uma camada pontual compatível.</li><li>Abra <strong>Vetor → Visualizador de Séries Temporais → Visualizador de Séries Temporais InSAR</strong>.</li><li>Selecione pontos ou escolha um fluxo por polígonos.</li><li>Escolha o modo de exibição e configure o gráfico.</li><li>Exporte para PNG, SVG ou PDF quando necessário.</li></ol>
+<h2>Campos necessários</h2>
+<p>A camada precisa ter ao menos dois campos de aquisição válidos chamados <code>DYYYYMMDD</code> e um par completo de componente:</p>
+<ul><li>LOS: <code>VEL</code> e <code>V_STDEV</code></li><li>Vertical: <code>VEL_V</code> e <code>V_STDEV_V</code></li><li>Leste-oeste: <code>VEL_E</code> e <code>V_STDEV_E</code></li></ul>
+<p><code>999</code>, valores nulos, NaN e não finitos são tratados como ausentes. <code>CODE</code> é usado somente como rótulo.</p>
+<h2>Visualização</h2>
+<ul><li>Gráficos únicos, sobrepostos e separados.</li><li>Médias de pontos selecionados e médias independentes por polígono.</li><li>Hover interativo e regressão linear vermelha sólida opcional.</li><li>Eixos, grades, períodos sombreados e atributos adicionais configuráveis.</li><li>Marca d’água genérica do plugin opcional, desativada por padrão.</li></ul>
+<div class="note"><strong>Importante:</strong> a regressão é calculada localmente apenas para visualização. Ela não substitui a velocidade fornecida pelo produto de origem.</div>
+<h2>Suporte e código-fonte</h2>
+<p>A documentação, o código-fonte e o rastreador de problemas estão disponíveis no repositório público indicado nos metadados do plugin.</p>
+<hr><p class="small">InSAR Time Series Viewer 1.0.0 · GPL-2.0-or-later</p>
+</body>
+</html>
