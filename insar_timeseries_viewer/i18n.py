@@ -457,6 +457,7 @@ def translate_widget_tree(root) -> None:
     """Translate static text already assigned to a Qt widget tree."""
     if _active_locale == _PT_BR:
         return
+
     try:
         from qgis.PyQt.QtWidgets import (
             QAbstractButton,
@@ -465,36 +466,33 @@ def translate_widget_tree(root) -> None:
             QLabel,
             QWidget,
         )
-    except Exception:
+    except ImportError:
         return
 
-    widgets = [root]
-    try:
-        widgets.extend(root.findChildren(QWidget))
-    except Exception:
-        pass
+    if not isinstance(root, QWidget):
+        return
+
+    widgets = [root, *root.findChildren(QWidget)]
 
     for widget in widgets:
-        try:
-            title = widget.windowTitle()
-            if title in PT_TO_EN:
-                widget.setWindowTitle(tr(title))
-        except Exception:
-            pass
-        try:
-            tip = widget.toolTip()
-            if tip in PT_TO_EN:
-                widget.setToolTip(tr(tip))
-        except Exception:
-            pass
+        title = widget.windowTitle()
+        if title in PT_TO_EN:
+            widget.setWindowTitle(tr(title))
+
+        tip = widget.toolTip()
+        if tip in PT_TO_EN:
+            widget.setToolTip(tr(tip))
+
         if isinstance(widget, QGroupBox):
             title = widget.title()
             if title in PT_TO_EN:
                 widget.setTitle(tr(title))
+
         if isinstance(widget, (QLabel, QAbstractButton)):
             text = widget.text()
             if text in PT_TO_EN:
                 widget.setText(tr(text))
+
         if isinstance(widget, QComboBox):
             for index in range(widget.count()):
                 text = widget.itemText(index)
@@ -507,12 +505,17 @@ def _log_locale() -> None:
         "Time Series Viewer: requested locale="
         f"{_requested_locale}, loaded language={_active_locale}"
     )
+
     try:
         from qgis.core import Qgis, QgsMessageLog
+    except ImportError:
+        return
 
-        QgsMessageLog.logMessage(message, "Time Series Viewer", Qgis.Info)
-    except Exception:
-        pass
+    QgsMessageLog.logMessage(
+        message,
+        "Time Series Viewer",
+        Qgis.Info,
+    )
 
 
 # Safe module default. plugin.py calls initialize_locale again during startup.

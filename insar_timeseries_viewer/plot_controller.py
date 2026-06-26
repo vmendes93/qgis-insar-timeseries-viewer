@@ -461,8 +461,8 @@ def _apply_legend(axes, settings: PlotSettings, *, columns: int = 1) -> None:
         pairs = [
             (handle, label)
             for handle, label in zip(handles, labels)
-            if getattr(handle, "_insar_is_trendline", False)
-            or str(label).startswith("Trendline")
+            if getattr(handle, "_insar_is_trendline", False) or
+            str(label).startswith("Trendline")
         ]
         if pairs:
             trend_handles, trend_labels = zip(*pairs)

@@ -195,10 +195,10 @@ def validate_polygon_geometry(geometry: QgsGeometry) -> QgsGeometry:
                 tr("O polígono é inválido e não pôde ser reparado: {error}", error=exc)
             ) from exc
         if (
-            repaired is None
-            or repaired.isEmpty()
-            or QgsWkbTypes.geometryType(repaired.wkbType())
-            != QgsWkbTypes.PolygonGeometry
+            repaired is None or
+            repaired.isEmpty() or
+            QgsWkbTypes.geometryType(repaired.wkbType()) !=
+            QgsWkbTypes.PolygonGeometry
         ):
             raise SpatialSelectionError(
                 tr("O polígono é inválido e o reparo não produziu uma área poligonal.")
