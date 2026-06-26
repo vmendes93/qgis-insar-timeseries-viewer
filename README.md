@@ -14,7 +14,6 @@ python -m pip install -e ".[dev]"
 python -m ruff check insar_timeseries_viewer tests scripts
 python -m pytest tests/unit
 python scripts/validate_release.py
-python scripts/package_plugin.py
 ```
 
 QGIS integration tests require a QGIS Python environment:
@@ -23,20 +22,64 @@ QGIS integration tests require a QGIS Python environment:
 python -m pytest tests/qgis
 ```
 
+## Release packaging
+
+Create, validate, verify, and copy the versioned QGIS plugin package with:
+
+```bash
+./scripts/build_release.sh
+```
+
+The version is read automatically from:
+
+```text
+insar_timeseries_viewer/metadata.txt
+```
+
+The generated ZIP and SHA-256 checksum are first created in `dist/`.
+
+By default, both files are also copied to the directory containing this repository. For the current project layout, that directory is:
+
+```text
+~/Documents/projects/time_series_viewer/
+```
+
+An alternative output directory may be supplied as the first argument:
+
+```bash
+./scripts/build_release.sh /path/to/output
+```
+
+Before preparing a new release:
+
+1. Update `version` and `changelog` in `insar_timeseries_viewer/metadata.txt`.
+2. Add the corresponding version section to `insar_timeseries_viewer/CHANGELOG.md`.
+3. Run the unit tests and release validation.
+4. Run `./scripts/build_release.sh`.
+
 ## Repository layout
 
 ```text
 insar_timeseries_viewer/  QGIS-installable plugin source
-scripts/                  validation and packaging utilities
-tests/unit/               tests that run without QGIS
+scripts/                  Validation and packaging utilities
+tests/unit/               Tests that run without QGIS
 tests/qgis/               PyQGIS integration tests
-tests/fixtures/           synthetic, redistributable sample data
-.github/                  issue templates and CI workflows
+tests/fixtures/           Synthetic, redistributable sample data
+.github/                  Issue templates and CI workflows
+dist/                     Generated release packages
 ```
 
 ## Release status
 
-Version 1.0.0 is prepared as an open-source release candidate. The plugin remains marked experimental until the cross-platform checklist in [`VALIDATION_CHECKLIST.md`](insar_timeseries_viewer/VALIDATION_CHECKLIST.md) is completed.
+The current release version is defined in:
+
+[`insar_timeseries_viewer/metadata.txt`](insar_timeseries_viewer/metadata.txt)
+
+Release packages are generated with:
+
+```bash
+./scripts/build_release.sh
+```
 
 ## License
 
