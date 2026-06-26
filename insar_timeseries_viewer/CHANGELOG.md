@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-06-26
+
+### Fixed
+
+- Published the SHA-1 non-security-use correction in a new package version for a fresh QGIS repository security scan.
+
 ## [1.0.1] - 2026-06-26
 
 ### Fixed
