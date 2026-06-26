@@ -12,6 +12,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PLUGIN_DIR = REPO_ROOT / "insar_timeseries_viewer"
+PREPARED_RELEASE_VERSION = "1.0.1"
 
 REQUIRED_FILES = {
     "__init__.py",
@@ -89,8 +90,11 @@ def main() -> int:
         if not metadata[key].startswith("https://"):
             fail(f"metadata field {key} must use HTTPS")
 
-    if metadata.get("version") != "1.0.0":
-        fail("metadata version must match the prepared public release version 1.0.0")
+    if metadata.get("version") != PREPARED_RELEASE_VERSION:
+        fail(
+            "metadata version must match the prepared public release version "
+            f"{PREPARED_RELEASE_VERSION}"
+        )
 
     for path in sorted(REPO_ROOT.rglob("*")):
         if any(part in {".git", ".venv", "dist", "build"} for part in path.parts):

@@ -2,6 +2,7 @@ from insar_timeseries_viewer.orbit_direction import (
     ORBIT_ASCENDING,
     ORBIT_DESCENDING,
     ORBIT_UNSPECIFIED,
+    _orbit_key,
     detect_orbit_direction,
     resolve_orbit_direction,
 )
@@ -34,3 +35,10 @@ def test_layer_name_has_priority_over_source_filename():
 def test_source_filename_is_fallback():
     layer = Layer("Project", "/tmp/project_DESC.shp|layerid=0")
     assert resolve_orbit_direction(layer) == ORBIT_DESCENDING
+
+
+def test_orbit_key_preserves_existing_project_compatibility():
+    assert _orbit_key("test-layer-id") == (
+        "/orbitOverrides/layer_"
+        "718bcd3a12d2c739acdd86707338a371793ea364"
+    )

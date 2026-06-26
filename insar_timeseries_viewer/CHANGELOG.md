@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-06-26
+
+### Fixed
+
+- Declared the SHA-1 layer-key digest as non-security use, preserving existing project compatibility while satisfying security scanning requirements.
+
 ## [1.0.0] - 2026-06-26
 
 ### Added
