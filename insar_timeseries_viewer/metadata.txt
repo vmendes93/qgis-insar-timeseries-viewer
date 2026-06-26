@@ -19,4 +19,4 @@ experimental=True
 deprecated=False
 hasProcessingProvider=False
 icon=icon.png
-changelog=1.0.0 - Initial open-source release candidate. Removed organization-specific branding and distribution restrictions, added GPL-2.0-or-later licensing, public project metadata, sanitized test fixtures, automated validation, and repository documentation.
+changelog=1.0.0 - Initial open-source release. Includes LOS, vertical, and east-west time-series visualization, point and polygon means, spatial selection, configurable plotting and export, English and Brazilian Portuguese interfaces, public documentation, automated tests, release validation, and GPL-2.0-or-later licensing.

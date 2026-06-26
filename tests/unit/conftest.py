@@ -6,16 +6,6 @@ import sys
 import types
 
 
-def _tr(text: str, **kwargs) -> str:
-    return text.format(**kwargs) if kwargs else text
-
-
-i18n = types.ModuleType("insar_timeseries_viewer.i18n")
-i18n.tr = _tr
-i18n.initialize_locale = lambda **_kwargs: "en"
-i18n.translate_widget_tree = lambda _root: None
-sys.modules.setdefault("insar_timeseries_viewer.i18n", i18n)
-
 qgis = types.ModuleType("qgis")
 qgis_core = types.ModuleType("qgis.core")
 

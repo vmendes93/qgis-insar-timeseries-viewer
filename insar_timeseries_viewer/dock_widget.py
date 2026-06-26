@@ -700,7 +700,7 @@ class TimeSeriesDockWidget(QDockWidget):
         self.y_tick_spin.setRange(0.0, 1_000_000.0)
         self.y_tick_spin.setDecimals(2)
         self.y_tick_spin.setSingleStep(1.0)
-        self.y_tick_spin.setSpecialValueText("Automático")
+        self.y_tick_spin.setSpecialValueText(tr("Automático"))
         self.y_tick_spin.valueChanged.connect(self._on_plot_settings_changed)
         y_form.addRow("Intervalo dos ticks:", self.y_tick_spin)
         layout.addWidget(y_group)
@@ -720,7 +720,7 @@ class TimeSeriesDockWidget(QDockWidget):
 
         self.x_tick_days_spin = QSpinBox()
         self.x_tick_days_spin.setRange(0, 3650)
-        self.x_tick_days_spin.setSpecialValueText("Automático")
+        self.x_tick_days_spin.setSpecialValueText(tr("Automático"))
         self.x_tick_days_spin.valueChanged.connect(self._on_plot_settings_changed)
         x_form.addRow("Intervalo dos ticks (dias):", self.x_tick_days_spin)
         layout.addWidget(x_group)
@@ -1815,8 +1815,13 @@ class TimeSeriesDockWidget(QDockWidget):
 
         operation_label = self.area_operation_combo.currentText().lower()
         self._set_area_status(
-            f"{description.capitalize()}: {len(found_ids)} ponto(s) encontrado(s); "
-            f"{operation_label}; {len(final_ids)} ponto(s) selecionado(s) ao final."
+            tr(
+                "{description}: {found} ponto(s) encontrado(s); {operation}; {selected} ponto(s) selecionado(s) ao final.",
+                description=tr(description).capitalize(),
+                found=len(found_ids),
+                operation=operation_label,
+                selected=len(final_ids),
+            )
         )
         return True
 

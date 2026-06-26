@@ -4,7 +4,7 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
-## [1.0.0] - 2026-06-24
+## [1.0.0] - 2026-06-26
 
 ### Added
 
@@ -12,6 +12,8 @@ All notable changes to this project are documented in this file. The format is b
 - GPL-2.0-or-later license.
 - Sanitized synthetic test data and automated release validation.
 - Generic optional plugin watermark using the bundled plugin icon.
+- Complete English runtime translations for automatic tick labels and area-selection feedback.
+- Automated tests for runtime localization and clean CI environments.
 
 ### Changed
 
