@@ -7,6 +7,8 @@ Open-source QGIS plugin for exploring, comparing, averaging, and exporting point
 
 The installable source is in [`insar_timeseries_viewer/`](insar_timeseries_viewer/README.md).
 
+The major planned development blocks are tracked in [`ROADMAP.md`](ROADMAP.md).
+
 ## Development
 
 ```bash
