@@ -98,5 +98,8 @@ def save_layer_orbit_override(project, layer_id: str, value: str) -> None:
 
 
 def _orbit_key(layer_id: str) -> str:
-    digest = hashlib.sha1(layer_id.encode("utf-8")).hexdigest()
+    digest = hashlib.sha1(
+        layer_id.encode("utf-8"),
+        usedforsecurity=False,
+    ).hexdigest()
     return f"/orbitOverrides/layer_{digest}"
