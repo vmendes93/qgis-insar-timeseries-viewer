@@ -97,16 +97,20 @@ printf '============================================\n'
 cd "${REPO_ROOT}"
 
 
-printf '\n[1/6] Validando a estrutura da release...\n'
+printf '\n[1/7] Validando a estrutura da release...\n'
 python3 scripts/validate_release.py
 
 
-printf '\n[2/6] Removendo pacotes anteriores da versão...\n'
+printf '\n[2/7] Executando scans de segurança e qualidade...\n'
+bash scripts/run_quality_checks.sh
+
+
+printf '\n[3/7] Removendo pacotes anteriores da versão...\n'
 rm -f "${ARCHIVE_PATH}"
 rm -f "${CHECKSUM_PATH}"
 
 
-printf '\n[3/6] Criando o ZIP instalável...\n'
+printf '\n[4/7] Criando o ZIP instalável...\n'
 python3 scripts/package_plugin.py
 
 
@@ -119,7 +123,7 @@ if [[ ! -f "${CHECKSUM_PATH}" ]]; then
 fi
 
 
-printf '\n[4/6] Verificando o checksum em dist/...\n'
+printf '\n[5/7] Verificando o checksum em dist/...\n'
 
 (
     cd "${DIST_DIR}"
@@ -127,7 +131,7 @@ printf '\n[4/6] Verificando o checksum em dist/...\n'
 )
 
 
-printf '\n[5/6] Verificando a estrutura interna do ZIP...\n'
+printf '\n[6/7] Verificando a estrutura interna do ZIP...\n'
 
 python3 - "${ARCHIVE_PATH}" "${VERSION}" <<'PY'
 import configparser
@@ -220,7 +224,7 @@ print("Estrutura interna: OK")
 PY
 
 
-printf '\n[6/6] Copiando o pacote para o destino final...\n'
+printf '\n[7/7] Copiando o pacote para o destino final...\n'
 
 cp -f "${ARCHIVE_PATH}" "${FINAL_ARCHIVE}"
 cp -f "${CHECKSUM_PATH}" "${FINAL_CHECKSUM}"

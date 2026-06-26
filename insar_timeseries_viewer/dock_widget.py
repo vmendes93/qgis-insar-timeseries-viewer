@@ -116,8 +116,6 @@ from .spatial_selection import (
 )
 
 
-
-
 class QLabel(_QtQLabel):
     """QLabel that translates plugin-owned text at assignment time."""
 
@@ -1181,17 +1179,17 @@ class TimeSeriesDockWidget(QDockWidget):
     @staticmethod
     def _is_point_vector_layer(layer) -> bool:
         return (
-            isinstance(layer, QgsVectorLayer)
-            and layer.isValid()
-            and layer.geometryType() == QgsWkbTypes.PointGeometry
+            isinstance(layer, QgsVectorLayer) and
+            layer.isValid() and
+            layer.geometryType() == QgsWkbTypes.PointGeometry
         )
 
     @staticmethod
     def _is_polygon_vector_layer(layer) -> bool:
         return (
-            isinstance(layer, QgsVectorLayer)
-            and layer.isValid()
-            and layer.geometryType() == QgsWkbTypes.PolygonGeometry
+            isinstance(layer, QgsVectorLayer) and
+            layer.isValid() and
+            layer.geometryType() == QgsWkbTypes.PolygonGeometry
         )
 
     # ----------------------------------------------- additional properties
@@ -1490,13 +1488,13 @@ class TimeSeriesDockWidget(QDockWidget):
 
     def _update_area_control_states(self, *_args) -> None:
         target_available = (
-            self.current_layer is not None
-            and self.current_schema is not None
-            and self._is_point_vector_layer(self.current_layer)
+            self.current_layer is not None and
+            self.current_schema is not None and
+            self._is_point_vector_layer(self.current_layer)
         )
         capture_active = (
-            self._polygon_capture_tool is not None
-            and self.iface.mapCanvas().mapTool() is self._polygon_capture_tool
+            self._polygon_capture_tool is not None and
+            self.iface.mapCanvas().mapTool() is self._polygon_capture_tool
         )
         self.draw_area_button.setEnabled(target_available and not capture_active)
         self.clear_area_button.setEnabled(self._has_displayed_area)
@@ -2374,9 +2372,9 @@ class TimeSeriesDockWidget(QDockWidget):
         if not hasattr(self, "export_current_button"):
             return
         has_current = bool(
-            self._displayed_series
-            or self._displayed_mean_result is not None
-            or self._displayed_polygon_groups
+            self._displayed_series or
+            self._displayed_mean_result is not None or
+            self._displayed_polygon_groups
         )
         batch_count = max(
             len(self._displayed_series),
@@ -2387,9 +2385,9 @@ class TimeSeriesDockWidget(QDockWidget):
 
     def _export_current_graph(self, *_args) -> None:
         if not (
-            self._displayed_series
-            or self._displayed_mean_result is not None
-            or self._displayed_polygon_groups
+            self._displayed_series or
+            self._displayed_mean_result is not None or
+            self._displayed_polygon_groups
         ):
             QMessageBox.information(
                 self,
@@ -2831,10 +2829,10 @@ class TimeSeriesDockWidget(QDockWidget):
     # --------------------------------------------------------------- hover
     def _on_canvas_hover(self, event) -> None:
         if (
-            not self.settings.show_hover
-            or event.inaxes is None
-            or event.x is None
-            or event.y is None
+            not self.settings.show_hover or
+            event.inaxes is None or
+            event.x is None or
+            event.y is None
         ):
             self._hide_hover_annotations()
             return
@@ -3145,9 +3143,9 @@ class TimeSeriesDockWidget(QDockWidget):
         self._update_axis_control_states()
         if (
             self.settings.display_mode
-            in {"polygon_means_overlay", "polygon_means_separate"}
-            and self._polygon_mean_batch is not None
-            and sender
+            in {"polygon_means_overlay", "polygon_means_separate"} and
+            self._polygon_mean_batch is not None and
+            sender
             in {self.mean_common_interval_check, self.mean_reference_zero_check}
         ):
             self._calculate_polygon_means()
@@ -3184,8 +3182,8 @@ class TimeSeriesDockWidget(QDockWidget):
         self.show_additional_panel_check.setEnabled(has_additional_fields)
         self.export_additional_properties_check.setEnabled(has_additional_fields)
         watermark_enabled = (
-            self.watermark_export_check.isChecked()
-            or self.watermark_preview_check.isChecked()
+            self.watermark_export_check.isChecked() or
+            self.watermark_preview_check.isChecked()
         )
         self.watermark_opacity_spin.setEnabled(watermark_enabled)
         self.watermark_position_combo.setEnabled(watermark_enabled)
@@ -3204,9 +3202,9 @@ class TimeSeriesDockWidget(QDockWidget):
         self._updating_controls = True
         try:
             if not (
-                self.settings.x_manual
-                and self.settings.x_start
-                and self.settings.x_end
+                self.settings.x_manual and
+                self.settings.x_start and
+                self.settings.x_end
             ):
                 self.x_start_edit.setDate(self._qdate(schema.first_acquisition))
                 self.x_end_edit.setDate(self._qdate(schema.last_acquisition))
