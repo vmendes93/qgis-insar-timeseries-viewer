@@ -4,6 +4,20 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-06-26
+
+### Added
+
+- Added permanent Bandit, detect-secrets, and QGIS-compatible Flake8 checks to the CI and local release workflow.
+
+### Changed
+
+- Promoted the plugin from experimental to stable.
+
+### Fixed
+
+- Resolved all reported Bandit and QGIS repository Flake8 findings.
+
 ## [1.0.2] - 2026-06-26
 
 ### Fixed
