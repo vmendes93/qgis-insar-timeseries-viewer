@@ -331,6 +331,39 @@ class FieldMappingDialog(QDialog):
     def _sync_temporal_table_enabled(self) -> None:
         enabled = self._combo_data(self.temporal_mode_combo) == _TEMPORAL_MODE_MANUAL
         self.temporal_fields_table.setEnabled(enabled)
+        self.temporal_filter_edit.setEnabled(enabled)
+        self.select_dyyyy_button.setEnabled(enabled)
+        self.clear_temporal_button.setEnabled(enabled)
+
+    def _filter_temporal_table_rows(self, text: str) -> None:
+        needle = text.strip().casefold()
+        for row in range(self.temporal_fields_table.rowCount()):
+            field_item = self.temporal_fields_table.item(row, 1)
+            if field_item is None:
+                self.temporal_fields_table.setRowHidden(row, False)
+                continue
+
+            hidden = bool(needle)
+            if hidden:
+                hidden = needle not in field_item.text().casefold()
+            self.temporal_fields_table.setRowHidden(row, hidden)
+
+    def _select_detected_temporal_fields(self) -> None:
+        for row in range(self.temporal_fields_table.rowCount()):
+            field_item = self.temporal_fields_table.item(row, 1)
+            checked = False
+            if field_item is not None:
+                checked = self._date_from_field_name(field_item.text()) is not None
+            self._set_temporal_row_checked(row, checked)
+
+    def _clear_temporal_selection(self) -> None:
+        for row in range(self.temporal_fields_table.rowCount()):
+            self._set_temporal_row_checked(row, False)
+
+    def _set_temporal_row_checked(self, row: int, checked: bool) -> None:
+        use_item = self.temporal_fields_table.item(row, 0)
+        if use_item is not None:
+            use_item.setCheckState(Qt.Checked if checked else Qt.Unchecked)
 
     def _selected_manual_date_fields(self) -> Optional[tuple[DateField, ...]]:
         if self._combo_data(self.temporal_mode_combo) != _TEMPORAL_MODE_MANUAL:
