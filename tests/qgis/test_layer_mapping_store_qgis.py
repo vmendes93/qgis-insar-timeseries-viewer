@@ -18,7 +18,21 @@ QgsField = qgis_core.QgsField
 QgsGeometry = qgis_core.QgsGeometry
 QgsPointXY = qgis_core.QgsPointXY
 QgsVectorLayer = qgis_core.QgsVectorLayer
+QMetaType = getattr(qgis_qtcore, "QMetaType", None)
 QVariant = qgis_qtcore.QVariant
+
+
+def _field_type(name: str, fallback_name: str):
+    if QMetaType is not None:
+        enum = getattr(QMetaType, "Type", QMetaType)
+        field_type = getattr(enum, name, None)
+        if field_type is not None:
+            return field_type
+    return getattr(QVariant, fallback_name)
+
+
+FIELD_STRING = _field_type("QString", "String")
+FIELD_DOUBLE = _field_type("Double", "Double")
 
 from insar_timeseries_viewer.insar_timeseries_reader import (  # noqa: E402
     DateField,
@@ -54,12 +68,12 @@ def layer_with_custom_fields() -> QgsVectorLayer:
     provider = layer.dataProvider()
     provider.addAttributes(
         [
-            QgsField("name_key", QVariant.String),
-            QgsField("vel_any", QVariant.Double),
-            QgsField("sigma_any", QVariant.Double),
-            QgsField("nodata_any", QVariant.Double),
-            QgsField("first_obs", QVariant.Double),
-            QgsField("last_obs", QVariant.Double),
+            QgsField("name_key", FIELD_STRING),
+            QgsField("vel_any", FIELD_DOUBLE),
+            QgsField("sigma_any", FIELD_DOUBLE),
+            QgsField("nodata_any", FIELD_DOUBLE),
+            QgsField("first_obs", FIELD_DOUBLE),
+            QgsField("last_obs", FIELD_DOUBLE),
         ]
     )
     layer.updateFields()

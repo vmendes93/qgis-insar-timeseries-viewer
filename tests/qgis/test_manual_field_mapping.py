@@ -18,7 +18,21 @@ QgsField = qgis_core.QgsField
 QgsGeometry = qgis_core.QgsGeometry
 QgsPointXY = qgis_core.QgsPointXY
 QgsVectorLayer = qgis_core.QgsVectorLayer
+QMetaType = getattr(qgis_qtcore, "QMetaType", None)
 QVariant = qgis_qtcore.QVariant
+
+
+def _field_type(name: str, fallback_name: str):
+    if QMetaType is not None:
+        enum = getattr(QMetaType, "Type", QMetaType)
+        field_type = getattr(enum, name, None)
+        if field_type is not None:
+            return field_type
+    return getattr(QVariant, fallback_name)
+
+
+FIELD_STRING = _field_type("QString", "String")
+FIELD_DOUBLE = _field_type("Double", "Double")
 
 from insar_timeseries_viewer.insar_timeseries_reader import (  # noqa: E402
     DateField,
@@ -50,15 +64,15 @@ def manually_mapped_layer() -> QgsVectorLayer:
     provider = layer.dataProvider()
     provider.addAttributes(
         [
-            QgsField("custom_id", QVariant.String),
-            QgsField("speed", QVariant.Double),
-            QgsField("sigma", QVariant.Double),
-            QgsField("orb", QVariant.String),
-            QgsField("measure", QVariant.String),
-            QgsField("missing_code", QVariant.Double),
-            QgsField("obs_a", QVariant.Double),
-            QgsField("obs_b", QVariant.Double),
-            QgsField("obs_c", QVariant.String),
+            QgsField("custom_id", FIELD_STRING),
+            QgsField("speed", FIELD_DOUBLE),
+            QgsField("sigma", FIELD_DOUBLE),
+            QgsField("orb", FIELD_STRING),
+            QgsField("measure", FIELD_STRING),
+            QgsField("missing_code", FIELD_DOUBLE),
+            QgsField("obs_a", FIELD_DOUBLE),
+            QgsField("obs_b", FIELD_DOUBLE),
+            QgsField("obs_c", FIELD_STRING),
         ]
     )
     layer.updateFields()

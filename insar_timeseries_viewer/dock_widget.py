@@ -2044,12 +2044,31 @@ class TimeSeriesDockWidget(QDockWidget):
             )
             return
 
+        self._apply_clicked_point_selection(layer, feature_id)
+
+    def _apply_clicked_point_selection(self, layer, feature_id: int) -> None:
         self.current_feature_id = feature_id
-        layer.selectByIds([feature_id])
+        mode = self.settings.display_mode
+
+        if mode in {"overlay", "separate", "mean"}:
+            selected_ids = {int(item) for item in layer.selectedFeatureIds()}
+            selected_ids.add(int(feature_id))
+            final_ids = sorted(selected_ids)
+            layer.selectByIds(final_ids)
+            status = tr(
+                "Ponto FID {fid} adicionado pelo clique no mapa; {count} ponto(s) selecionado(s).",
+                fid=feature_id,
+                count=len(final_ids),
+            )
+        else:
+            layer.selectByIds([int(feature_id)])
+            status = tr(
+                "Ponto FID {fid} selecionado pelo clique no mapa.",
+                fid=feature_id,
+            )
+
         self._show_active_feature_marker(feature_id)
-        self.status_label.setText(
-            tr("Ponto FID {fid} selecionado pelo clique no mapa.", fid=feature_id)
-        )
+        self.status_label.setText(status)
         self._update_selection_action_states()
 
     def _on_point_click_canceled(self) -> None:

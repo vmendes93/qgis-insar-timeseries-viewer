@@ -147,4 +147,12 @@ def test_click_to_plot_strings_translate_to_english():
         tr("Ponto FID {fid} selecionado pelo clique no mapa.", fid=123)
         == "Point FID 123 selected by map click."
     )
+    assert (
+        tr(
+            "Ponto FID {fid} adicionado pelo clique no mapa; {count} ponto(s) selecionado(s).",
+            fid=123,
+            count=3,
+        )
+        == "Point FID 123 added by map click; 3 point(s) selected."
+    )
     assert tr("Seleção por clique cancelada.") == "Click selection canceled."

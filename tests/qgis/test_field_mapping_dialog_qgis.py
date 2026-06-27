@@ -17,7 +17,21 @@ QgsField = qgis_core.QgsField
 QgsVectorLayer = qgis_core.QgsVectorLayer
 QDate = qgis_qtcore.QDate
 Qt = qgis_qtcore.Qt
+QMetaType = getattr(qgis_qtcore, "QMetaType", None)
 QVariant = qgis_qtcore.QVariant
+
+
+def _field_type(name: str, fallback_name: str):
+    if QMetaType is not None:
+        enum = getattr(QMetaType, "Type", QMetaType)
+        field_type = getattr(enum, name, None)
+        if field_type is not None:
+            return field_type
+    return getattr(QVariant, fallback_name)
+
+
+FIELD_STRING = _field_type("QString", "String")
+FIELD_DOUBLE = _field_type("Double", "Double")
 
 from insar_timeseries_viewer.field_mapping_dialog import FieldMappingDialog  # noqa: E402
 from insar_timeseries_viewer.insar_timeseries_reader import (  # noqa: E402
@@ -46,15 +60,15 @@ def layer() -> QgsVectorLayer:
     provider = vector_layer.dataProvider()
     provider.addAttributes(
         [
-            QgsField("CODE_CUSTOM", QVariant.String),
-            QgsField("COMP_CUSTOM", QVariant.String),
-            QgsField("VEL_CUSTOM", QVariant.Double),
-            QgsField("ERR_CUSTOM", QVariant.Double),
-            QgsField("ORBIT_CUSTOM", QVariant.String),
-            QgsField("UNIT_CUSTOM", QVariant.String),
-            QgsField("NODATA_CUSTOM", QVariant.Double),
-            QgsField("D20240101", QVariant.Double),
-            QgsField("D20240201", QVariant.Double),
+            QgsField("CODE_CUSTOM", FIELD_STRING),
+            QgsField("COMP_CUSTOM", FIELD_STRING),
+            QgsField("VEL_CUSTOM", FIELD_DOUBLE),
+            QgsField("ERR_CUSTOM", FIELD_DOUBLE),
+            QgsField("ORBIT_CUSTOM", FIELD_STRING),
+            QgsField("UNIT_CUSTOM", FIELD_STRING),
+            QgsField("NODATA_CUSTOM", FIELD_DOUBLE),
+            QgsField("D20240101", FIELD_DOUBLE),
+            QgsField("D20240201", FIELD_DOUBLE),
         ]
     )
     vector_layer.updateFields()
@@ -144,11 +158,11 @@ def test_field_mapping_dialog_summarizes_many_temporal_fields_compactly(layer):
     provider = layer.dataProvider()
     provider.addAttributes(
         [
-            QgsField("D20240301", QVariant.Double),
-            QgsField("D20240401", QVariant.Double),
-            QgsField("D20240501", QVariant.Double),
-            QgsField("D20240601", QVariant.Double),
-            QgsField("D20240701", QVariant.Double),
+            QgsField("D20240301", FIELD_DOUBLE),
+            QgsField("D20240401", FIELD_DOUBLE),
+            QgsField("D20240501", FIELD_DOUBLE),
+            QgsField("D20240601", FIELD_DOUBLE),
+            QgsField("D20240701", FIELD_DOUBLE),
         ]
     )
     layer.updateFields()

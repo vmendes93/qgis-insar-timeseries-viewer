@@ -94,6 +94,7 @@ PT_TO_EN = {
     "Clique no mapa para selecionar o ponto InSAR mais próximo. Esc cancela.": "Click the map to select the nearest InSAR point. Esc cancels.",
     "Nenhum ponto InSAR encontrado próximo ao clique.": "No InSAR point was found near the click.",
     "Ponto FID {fid} selecionado pelo clique no mapa.": "Point FID {fid} selected by map click.",
+    "Ponto FID {fid} adicionado pelo clique no mapa; {count} ponto(s) selecionado(s).": "Point FID {fid} added by map click; {count} point(s) selected.",
     "Seleção por clique cancelada.": "Click selection canceled.",
     "Falha inesperada ao selecionar ponto pelo clique: {kind}: {error}": "Unexpected failure while selecting point by click: {kind}: {error}",
     "O SRC do mapa não é válido.": "The map CRS is not valid.",
