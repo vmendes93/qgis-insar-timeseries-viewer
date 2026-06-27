@@ -16,7 +16,9 @@ from qgis.PyQt.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QFormLayout,
+    QHBoxLayout,
     QLabel,
+    QLineEdit,
     QPushButton,
     QTableWidget,
     QTableWidgetItem,
@@ -179,6 +181,22 @@ class FieldMappingDialog(QDialog):
         )
         temporal_form.addRow(tr("Modo dos campos temporais:"), self.temporal_mode_combo)
         layout.addLayout(temporal_form)
+
+        temporal_controls_row = QHBoxLayout()
+        self.temporal_filter_edit = QLineEdit()
+        self.temporal_filter_edit.setPlaceholderText(tr("Filtrar campos..."))
+        self.temporal_filter_edit.textChanged.connect(self._filter_temporal_table_rows)
+        temporal_controls_row.addWidget(self.temporal_filter_edit, 1)
+
+        self.select_dyyyy_button = QPushButton(tr("Selecionar campos DYYYYMMDD"))
+        self.select_dyyyy_button.clicked.connect(self._select_detected_temporal_fields)
+        temporal_controls_row.addWidget(self.select_dyyyy_button)
+
+        self.clear_temporal_button = QPushButton(tr("Limpar seleção temporal"))
+        self.clear_temporal_button.clicked.connect(self._clear_temporal_selection)
+        temporal_controls_row.addWidget(self.clear_temporal_button)
+
+        layout.addLayout(temporal_controls_row)
 
         self.temporal_fields_table = self._build_temporal_fields_table()
         layout.addWidget(self.temporal_fields_table)

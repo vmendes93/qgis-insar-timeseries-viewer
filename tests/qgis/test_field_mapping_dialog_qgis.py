@@ -209,3 +209,49 @@ def test_field_mapping_dialog_restores_manual_date_fields(layer):
         DateField(name="D20240201", acquisition_date=date(2024, 2, 1)),
         DateField(name="CODE_CUSTOM", acquisition_date=date(2024, 3, 1)),
     )
+
+
+def test_field_mapping_dialog_filters_temporal_table_rows(layer):
+    dialog = FieldMappingDialog(layer)
+    _set_temporal_mode(dialog, "manual")
+
+    dialog.temporal_filter_edit.setText("vel")
+
+    assert dialog.temporal_fields_table.isRowHidden(
+        _temporal_row(dialog, "D20240101")
+    )
+    assert not dialog.temporal_fields_table.isRowHidden(
+        _temporal_row(dialog, "VEL_CUSTOM")
+    )
+
+
+def test_field_mapping_dialog_selects_detected_temporal_fields(layer):
+    dialog = FieldMappingDialog(layer)
+    _set_temporal_mode(dialog, "manual")
+
+    _set_temporal_checked(dialog, "D20240101", False)
+    _set_temporal_checked(dialog, "VEL_CUSTOM", True)
+
+    dialog.select_dyyyy_button.click()
+
+    assert dialog.temporal_fields_table.item(
+        _temporal_row(dialog, "D20240101"),
+        0,
+    ).checkState() == Qt.Checked
+    assert dialog.temporal_fields_table.item(
+        _temporal_row(dialog, "D20240201"),
+        0,
+    ).checkState() == Qt.Checked
+    assert dialog.temporal_fields_table.item(
+        _temporal_row(dialog, "VEL_CUSTOM"),
+        0,
+    ).checkState() == Qt.Unchecked
+
+
+def test_field_mapping_dialog_clears_temporal_selection(layer):
+    dialog = FieldMappingDialog(layer)
+    _set_temporal_mode(dialog, "manual")
+
+    dialog.clear_temporal_button.click()
+
+    assert dialog.field_mapping().date_fields == ()

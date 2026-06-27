@@ -84,3 +84,11 @@ def test_manual_temporal_field_dialog_strings_translate_to_english():
         == "In manual mode, check temporal fields and adjust their dates. "
         "In automatic mode, the reader uses DYYYYMMDD fields."
     )
+
+
+def test_temporal_table_ergonomics_strings_translate_to_english():
+    initialize_locale("en", log=False)
+
+    assert tr("Filtrar campos...") == "Filter fields..."
+    assert tr("Selecionar campos DYYYYMMDD") == "Select DYYYYMMDD fields"
+    assert tr("Limpar seleção temporal") == "Clear temporal selection"
