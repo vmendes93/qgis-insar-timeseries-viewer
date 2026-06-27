@@ -96,9 +96,9 @@ def test_field_mapping_dialog_summarizes_detected_temporal_fields(layer):
 
     summary = dialog.temporal_fields_summary()
 
-    assert "2 campos DYYYYMMDD detectados" in summary
-    assert "Cobertura: 01/01/2024 a 01/02/2024" in summary
-    assert "Campos: D20240101, D20240201" in summary
+    assert "2 DYYYYMMDD fields detected" in summary
+    assert "Coverage: 01/01/2024 to 01/02/2024" in summary
+    assert "Fields: D20240101, D20240201" in summary
     assert dialog.field_mapping().date_fields is None
 
 
@@ -118,10 +118,10 @@ def test_field_mapping_dialog_summarizes_many_temporal_fields_compactly(layer):
 
     summary = dialog.temporal_fields_summary()
 
-    assert "7 campos DYYYYMMDD detectados" in summary
-    assert "Cobertura: 01/01/2024 a 01/07/2024" in summary
-    assert "Primeiro campo: D20240101" in summary
-    assert "último campo: D20240701" in summary
-    assert "Primeiros: D20240101, D20240201, D20240301" in summary
-    assert "Últimos: D20240501, D20240601, D20240701" in summary
+    assert "7 DYYYYMMDD fields detected" in summary
+    assert "Coverage: 01/01/2024 to 01/07/2024" in summary
+    assert "First field: D20240101" in summary
+    assert "last field: D20240701" in summary
+    assert "First: D20240101, D20240201, D20240301" in summary
+    assert "Last: D20240501, D20240601, D20240701" in summary
     assert "D20240401" not in summary
