@@ -88,6 +88,13 @@ PT_TO_EN = {
     "— selecione uma camada —": "— select a layer —",
     "0 selecionadas": "0 selected",
     "0 médias poligonais": "0 polygon means",
+    "Aproximar do ponto": "Zoom to point",
+    "Aproxima o mapa para a feição atualmente exibida no gráfico": "Zooms the map to the feature currently shown in the chart",
+    "Limpar seleção": "Clear selection",
+    "Remove a seleção atual da camada pontual": "Clears the current selection from the point layer",
+    "Nenhum ponto válido está disponível para aproximar.": "No valid point is available to zoom to.",
+    "Não foi possível reprojetar o ponto para o mapa: {error}": "The point could not be reprojected to the map: {error}",
+    "Mapa aproximado para FID {fid}.": "Map zoomed to FID {fid}.",
     # Information panel
     "Ponto/série:": "Point/series:",
     "Componente:": "Component:",

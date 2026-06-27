@@ -16,6 +16,7 @@ from typing import Optional, Sequence
 import numpy as np
 
 from qgis.PyQt.QtCore import QDate, QTimer, Qt
+from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -41,7 +42,15 @@ from qgis.PyQt.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from qgis.core import QgsProject, QgsVectorLayer, QgsWkbTypes
+from qgis.core import (
+    QgsCoordinateTransform,
+    QgsCsException,
+    QgsGeometry,
+    QgsProject,
+    QgsRectangle,
+    QgsVectorLayer,
+    QgsWkbTypes,
+)
 from qgis.gui import QgsRubberBand
 
 try:
@@ -162,6 +171,7 @@ class TimeSeriesDockWidget(QDockWidget):
         self._polygon_capture_tool = None
         self._previous_map_tool = None
         self._area_rubber_band = None
+        self._active_feature_rubber_band = None
         self._has_displayed_area = False
         self._point_spatial_index = None
         self._polygon_mean_batch: Optional[PolygonMeanBatchResult] = None
@@ -256,6 +266,22 @@ class TimeSeriesDockWidget(QDockWidget):
         mode_row.addStretch(1)
         self.selection_count_label = QLabel("0 selecionadas")
         mode_row.addWidget(self.selection_count_label)
+
+        self.zoom_feature_button = QPushButton("Aproximar do ponto")
+        self.zoom_feature_button.setToolTip(
+            "Aproxima o mapa para a feição atualmente exibida no gráfico"
+        )
+        self.zoom_feature_button.setEnabled(False)
+        self.zoom_feature_button.clicked.connect(self._zoom_to_current_feature)
+        mode_row.addWidget(self.zoom_feature_button)
+
+        self.clear_selection_button = QPushButton("Limpar seleção")
+        self.clear_selection_button.setToolTip(
+            "Remove a seleção atual da camada pontual"
+        )
+        self.clear_selection_button.setEnabled(False)
+        self.clear_selection_button.clicked.connect(self._clear_current_selection)
+        mode_row.addWidget(self.clear_selection_button)
 
         self.settings_toggle_button = QToolButton()
         self.settings_toggle_button.setText("Configurações")
@@ -977,6 +1003,7 @@ class TimeSeriesDockWidget(QDockWidget):
         self.iface.currentLayerChanged.connect(self._on_active_layer_changed)
 
     def shutdown(self) -> None:
+        self._clear_active_feature_marker(remove=True)
         self._dispose_area_tools()
         self._disconnect_current_layer()
         for signal, slot in (
@@ -993,6 +1020,7 @@ class TimeSeriesDockWidget(QDockWidget):
 
     def _on_project_cleared(self, *_args) -> None:
         self._clear_drawn_area(update_status=False)
+        self._clear_active_feature_marker()
         self._point_spatial_index = None
         self._polygon_mean_batch = None
         self.settings = PlotSettings()
@@ -1002,6 +1030,7 @@ class TimeSeriesDockWidget(QDockWidget):
 
     def _on_project_read(self, *_args) -> None:
         self._clear_drawn_area(update_status=False)
+        self._clear_active_feature_marker()
         self._point_spatial_index = None
         self._polygon_mean_batch = None
         self.settings = PlotSettings.load(self.project)
@@ -1149,9 +1178,11 @@ class TimeSeriesDockWidget(QDockWidget):
             self._sync_orbit_control()
             self._refresh_additional_property_fields()
             self._clear_feature_info()
+            self._clear_active_feature_marker()
             self._show_plot_message(tr("Selecione uma camada InSAR compatível."))
             self.status_label.setText("")
             self._update_area_control_states()
+            self._update_selection_action_states()
             return
 
         layer = self.project.mapLayer(layer_id)
@@ -1201,6 +1232,7 @@ class TimeSeriesDockWidget(QDockWidget):
         )
 
     def _disconnect_current_layer(self) -> None:
+        self._clear_active_feature_marker()
         if self.current_layer is None:
             return
         try:
@@ -1918,6 +1950,171 @@ class TimeSeriesDockWidget(QDockWidget):
         self._has_displayed_area = False
         self._point_spatial_index = None
 
+
+    # ------------------------------------------------------- point navigation
+    def _update_selection_action_states(self) -> None:
+        if not hasattr(self, "zoom_feature_button"):
+            return
+
+        has_layer = self.current_layer is not None
+        has_current_feature = has_layer and self.current_feature_id is not None
+        selected_count = 0
+        if has_layer:
+            try:
+                selected_count = len(self.current_layer.selectedFeatureIds())
+            except RuntimeError:
+                selected_count = 0
+
+        self.zoom_feature_button.setEnabled(has_current_feature)
+        self.clear_selection_button.setEnabled(has_layer and selected_count > 0)
+
+    def _current_feature(self):
+        layer = self.current_layer
+        if layer is None or self.current_feature_id is None:
+            return None
+        try:
+            feature = layer.getFeature(int(self.current_feature_id))
+        except (TypeError, RuntimeError):
+            return None
+        if feature is None or not feature.isValid():
+            return None
+        return feature
+
+    def _clear_current_selection(self, *_args) -> None:
+        if self.current_layer is not None:
+            self.current_layer.removeSelection()
+        self._clear_active_feature_marker()
+        self._update_selection_action_states()
+
+    def _active_feature_marker(self):
+        if self._active_feature_rubber_band is None:
+            band = QgsRubberBand(
+                self.iface.mapCanvas(),
+                QgsWkbTypes.PointGeometry,
+            )
+            band.setColor(QColor(255, 170, 0, 230))
+            band.setWidth(3)
+            if hasattr(band, "setIcon"):
+                band.setIcon(QgsRubberBand.ICON_CIRCLE)
+            if hasattr(band, "setIconSize"):
+                band.setIconSize(14)
+            self._active_feature_rubber_band = band
+        return self._active_feature_rubber_band
+
+    def _show_active_feature_marker(self, feature_id: int) -> None:
+        layer = self.current_layer
+        if layer is None:
+            self._clear_active_feature_marker()
+            return
+
+        try:
+            feature = layer.getFeature(int(feature_id))
+        except (TypeError, RuntimeError):
+            self._clear_active_feature_marker()
+            return
+
+        if feature is None or not feature.isValid() or not feature.hasGeometry():
+            self._clear_active_feature_marker()
+            return
+
+        geometry = feature.geometry()
+        if geometry is None or geometry.isEmpty():
+            self._clear_active_feature_marker()
+            return
+
+        band = self._active_feature_marker()
+        try:
+            band.reset(QgsWkbTypes.PointGeometry)
+            band.setToGeometry(geometry, layer)
+            band.show()
+        except RuntimeError:
+            self._active_feature_rubber_band = None
+
+    def _clear_active_feature_marker(self, *, remove: bool = False) -> None:
+        band = self._active_feature_rubber_band
+        if band is None:
+            return
+
+        try:
+            band.reset(QgsWkbTypes.PointGeometry)
+        except RuntimeError:
+            self._active_feature_rubber_band = None
+            return
+
+        if not remove:
+            return
+
+        try:
+            self.iface.mapCanvas().scene().removeItem(band)
+        except (AttributeError, RuntimeError):
+            pass
+        self._active_feature_rubber_band = None
+
+    def _feature_geometry_in_canvas_crs(self, feature):
+        layer = self.current_layer
+        if layer is None or feature is None or not feature.hasGeometry():
+            return None
+
+        geometry = QgsGeometry(feature.geometry())
+        if geometry is None or geometry.isEmpty():
+            return None
+
+        canvas = self.iface.mapCanvas()
+        source_crs = layer.crs()
+        target_crs = canvas.mapSettings().destinationCrs()
+        if source_crs.isValid() and target_crs.isValid() and source_crs != target_crs:
+            try:
+                transform = QgsCoordinateTransform(
+                    source_crs,
+                    target_crs,
+                    self.project,
+                )
+                geometry.transform(transform)
+            except (QgsCsException, RuntimeError, ValueError) as exc:
+                self.status_label.setText(
+                    tr(
+                        "Não foi possível reprojetar o ponto para o mapa: {error}",
+                        error=exc,
+                    )
+                )
+                return None
+
+        return geometry
+
+    def _zoom_to_current_feature(self, *_args) -> None:
+        feature = self._current_feature()
+        geometry = self._feature_geometry_in_canvas_crs(feature)
+        if geometry is None:
+            self.status_label.setText(
+                tr("Nenhum ponto válido está disponível para aproximar.")
+            )
+            self._update_selection_action_states()
+            return
+
+        canvas = self.iface.mapCanvas()
+        bbox = geometry.boundingBox()
+        center = bbox.center()
+        current_extent = canvas.extent()
+        fallback_width = max(current_extent.width() * 0.025, 1.0)
+        fallback_height = max(current_extent.height() * 0.025, 1.0)
+        half_width = max(bbox.width() * 4.0, fallback_width)
+        half_height = max(bbox.height() * 4.0, fallback_height)
+
+        canvas.setExtent(
+            QgsRectangle(
+                center.x() - half_width,
+                center.y() - half_height,
+                center.x() + half_width,
+                center.y() + half_height,
+            )
+        )
+        canvas.refresh()
+        self._show_active_feature_marker(int(feature.id()))
+        self.status_label.setText(
+            tr("Mapa aproximado para FID {fid}.", fid=int(feature.id()))
+        )
+        self._update_selection_action_states()
+
     # ----------------------------------------------------------- selection
     def _on_selection_changed(self, selected, deselected, _clear_and_select) -> None:
         newly_selected = list(selected)
@@ -1955,8 +2152,11 @@ class TimeSeriesDockWidget(QDockWidget):
             self.status_label.setText(
                 "Use uma ferramenta normal de seleção do QGIS para escolher os pontos."
             )
+            self._clear_active_feature_marker()
+            self._update_selection_action_states()
             return
 
+        self._update_selection_action_states()
         if self.settings.display_mode == "overlay":
             self._display_overlay_selection(selected_ids)
         elif self.settings.display_mode == "separate":
@@ -2172,6 +2372,8 @@ class TimeSeriesDockWidget(QDockWidget):
         self._displayed_polygon_groups = list(groups)
         self._apply_preview_watermark()
         self.canvas.draw_idle()
+        self._clear_active_feature_marker()
+        self._update_selection_action_states()
         self._update_export_control_states()
         self._fill_polygon_mean_info(groups, component_label)
         self._update_additional_properties_info()
@@ -2288,9 +2490,12 @@ class TimeSeriesDockWidget(QDockWidget):
             )
 
         if len(series_list) == 1:
+            self._show_active_feature_marker(series_list[0].feature_id)
             self._fill_single_info(series_list[0], component_label)
         else:
+            self._clear_active_feature_marker()
             self._fill_multiple_info(series_list, component_label)
+        self._update_selection_action_states()
         self._update_additional_properties_info()
         return plot_warnings
 
@@ -2315,6 +2520,8 @@ class TimeSeriesDockWidget(QDockWidget):
         self._displayed_polygon_groups = []
         self._apply_preview_watermark()
         self.canvas.draw_idle()
+        self._clear_active_feature_marker()
+        self._update_selection_action_states()
         self._update_export_control_states()
         self._fill_mean_info(result, component_label)
         self._update_additional_properties_info()
@@ -2404,6 +2611,8 @@ class TimeSeriesDockWidget(QDockWidget):
 
     def _show_plot_message(self, message: str) -> None:
         self._clear_export_payload()
+        self._clear_active_feature_marker()
+        self._update_selection_action_states()
         self._set_chart_height(1, separate=False)
         render_message(self.figure, tr(message))
         self.canvas.draw_idle()

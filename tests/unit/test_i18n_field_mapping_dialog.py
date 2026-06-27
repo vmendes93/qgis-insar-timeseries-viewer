@@ -92,3 +92,26 @@ def test_temporal_table_ergonomics_strings_translate_to_english():
     assert tr("Filtrar campos...") == "Filter fields..."
     assert tr("Selecionar campos DYYYYMMDD") == "Select DYYYYMMDD fields"
     assert tr("Limpar seleção temporal") == "Clear temporal selection"
+
+
+def test_point_navigation_strings_translate_to_english():
+    initialize_locale("en", log=False)
+
+    assert tr("Aproximar do ponto") == "Zoom to point"
+    assert (
+        tr("Aproxima o mapa para a feição atualmente exibida no gráfico")
+        == "Zooms the map to the feature currently shown in the chart"
+    )
+    assert tr("Limpar seleção") == "Clear selection"
+    assert (
+        tr("Remove a seleção atual da camada pontual")
+        == "Clears the current selection from the point layer"
+    )
+    assert (
+        tr("Nenhum ponto válido está disponível para aproximar.")
+        == "No valid point is available to zoom to."
+    )
+    assert (
+        tr("Mapa aproximado para FID {fid}.", fid=42)
+        == "Map zoomed to FID 42."
+    )
