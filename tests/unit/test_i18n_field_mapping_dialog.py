@@ -115,15 +115,3 @@ def test_point_navigation_strings_translate_to_english():
         tr("Mapa aproximado para FID {fid}.", fid=42)
         == "Map zoomed to FID 42."
     )
-
-
-def test_single_series_title_strings_translate_to_english():
-    initialize_locale("en", log=False)
-
-    assert tr("CODE: {identifier}", identifier="TS1") == "CODE: TS1"
-    assert tr("VEL: {value}", value="-12.3") == "VEL: -12.3"
-    assert (
-        tr("Cumulative Displacement: {value}", value="-10.2")
-        == "Cumulative Displacement: -10.2"
-    )
-    assert tr("V_STDEV: {value}", value="0.4") == "V_STDEV: 0.4"

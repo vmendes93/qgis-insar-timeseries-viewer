@@ -97,10 +97,6 @@ PT_TO_EN = {
     "Mapa aproximado para FID {fid}.": "Map zoomed to FID {fid}.",
     # Information panel
     "Ponto/série:": "Point/series:",
-    "CODE: {identifier}": "CODE: {identifier}",
-    "VEL: {value}": "VEL: {value}",
-    "Cumulative Displacement: {value}": "Cumulative Displacement: {value}",
-    "V_STDEV: {value}": "V_STDEV: {value}",
     "Componente:": "Component:",
     "Desloc. acumulado:": "Cumulative displacement:",
     "Cobertura válida:": "Valid coverage:",
