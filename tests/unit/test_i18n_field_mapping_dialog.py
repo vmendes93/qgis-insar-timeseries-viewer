@@ -156,3 +156,26 @@ def test_click_to_plot_strings_translate_to_english():
         == "Point FID 123 added by map click; 3 point(s) selected."
     )
     assert tr("Seleção por clique cancelada.") == "Click selection canceled."
+
+
+def test_csv_export_strings_translate_to_english():
+    initialize_locale("en", log=False)
+
+    assert tr("Salvar dados CSV...") == "Save CSV data..."
+    assert (
+        tr("Exporta as séries temporais atualmente exibidas para CSV")
+        == "Exports the currently displayed time-series to CSV"
+    )
+    assert tr("Exportação CSV") == "CSV export"
+    assert tr("Salvar dados CSV") == "Save CSV data"
+    assert tr("Arquivo CSV (*.csv)") == "CSV file (*.csv)"
+    assert tr("Falha na exportação CSV") == "CSV export failed"
+    assert (
+        tr(
+            "Dados CSV exportados para {path} ({count} linha(s)).",
+            path="/tmp/a.csv",
+            count=2,
+        )
+        == "CSV data exported to /tmp/a.csv (2 row(s))."
+    )
+    assert tr("Exportação CSV concluída") == "CSV export complete"

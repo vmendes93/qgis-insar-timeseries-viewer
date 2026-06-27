@@ -113,6 +113,12 @@ from .timeseries_statistics import (
     MeanSeriesResult,
     calculate_mean_series,
 )
+from .timeseries_csv_export import (
+    mean_rows,
+    polygon_group_rows,
+    series_rows,
+    write_csv,
+)
 from .polygon_means import (
     PolygonMeanBatchResult,
     PolygonMeanError,
@@ -873,6 +879,13 @@ class TimeSeriesDockWidget(QDockWidget):
         self.export_current_button = QPushButton("Salvar gráfico atual...")
         self.export_current_button.clicked.connect(self._export_current_graph)
         export_layout.addWidget(self.export_current_button)
+
+        self.export_data_button = QPushButton("Salvar dados CSV...")
+        self.export_data_button.setToolTip(
+            "Exporta as séries temporais atualmente exibidas para CSV"
+        )
+        self.export_data_button.clicked.connect(self._export_current_data_csv)
+        export_layout.addWidget(self.export_data_button)
 
         self.export_batch_button = QPushButton(
             "Salvar séries/médias separadamente..."
@@ -2829,6 +2842,7 @@ class TimeSeriesDockWidget(QDockWidget):
             len(self._displayed_polygon_groups),
         )
         self.export_current_button.setEnabled(has_current)
+        self.export_data_button.setEnabled(has_current)
         self.export_batch_button.setEnabled(batch_count >= 1)
 
     def _export_current_graph(self, *_args) -> None:
@@ -2883,6 +2897,91 @@ class TimeSeriesDockWidget(QDockWidget):
             tr("Exportação concluída"),
             tr("Gráfico salvo em:\n{path}", path=target),
         )
+
+    def _export_current_data_csv(self, *_args) -> None:
+        rows = self._current_data_csv_rows()
+        if not rows:
+            QMessageBox.information(
+                self,
+                tr("Exportação CSV"),
+                tr("Não há dados válidos para exportar."),
+            )
+            return
+
+        initial_dir = self._export_initial_directory()
+        suggested = ensure_extension(
+            initial_dir / sanitize_filename(self._current_export_basename()),
+            "csv",
+        )
+        filename, _selected_filter = QFileDialog.getSaveFileName(
+            self,
+            tr("Salvar dados CSV"),
+            str(suggested),
+            tr("Arquivo CSV (*.csv)"),
+        )
+        if not filename:
+            return
+
+        target = ensure_extension(Path(filename), "csv")
+        try:
+            row_count = write_csv(target, rows)
+        except Exception as exc:
+            QMessageBox.critical(
+                self,
+                tr("Falha na exportação CSV"),
+                tr(
+                    "Não foi possível salvar os dados CSV.\n\n{kind}: {error}",
+                    kind=type(exc).__name__,
+                    error=exc,
+                ),
+            )
+            return
+
+        self._remember_export_directory(target.parent)
+        self.status_label.setText(
+            tr(
+                "Dados CSV exportados para {path} ({count} linha(s)).",
+                path=target,
+                count=row_count,
+            )
+        )
+        QMessageBox.information(
+            self,
+            tr("Exportação CSV concluída"),
+            tr("Dados salvos em:\n{path}", path=target),
+        )
+
+    def _current_data_csv_rows(self) -> list[dict[str, object]]:
+        mode = self._displayed_mode or self.settings.display_mode
+        component_label = self._effective_component_label()
+
+        if mode == "mean" and self._displayed_mean_result is not None:
+            point_ids = [
+                item.feature_id for item in self._displayed_mean_source_series
+            ]
+            return mean_rows(
+                self._displayed_mean_result,
+                label=tr(
+                    "Média de {count} pontos",
+                    count=self._displayed_mean_result.series_count,
+                ),
+                component_label=component_label,
+                point_ids=point_ids,
+            )
+
+        if mode in {"polygon_means_overlay", "polygon_means_separate"}:
+            return polygon_group_rows(
+                self._displayed_polygon_groups,
+                component_label=component_label,
+            )
+
+        rows = []
+        labels = self._displayed_labels or self._unique_legend_labels(
+            self._displayed_series
+        )
+        for series, label in zip(self._displayed_series, labels):
+            rows.extend(series_rows(series, label=label))
+        return rows
 
     def _export_batch_graphs(self, *_args) -> None:
         if not self._displayed_series and not self._displayed_polygon_groups:
