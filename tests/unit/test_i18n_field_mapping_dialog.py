@@ -124,3 +124,27 @@ def test_trendline_velocity_label_translates_to_english():
         tr("Trendline — VEL {value} mm/yr", value="-12.5")
         == "Trendline — VEL -12.5 mm/yr"
     )
+
+
+def test_click_to_plot_strings_translate_to_english():
+    initialize_locale("en", log=False)
+
+    assert tr("Clicar ponto") == "Click point"
+    assert (
+        tr("Clique no mapa para selecionar o ponto InSAR mais próximo")
+        == "Click the map to select the nearest InSAR point"
+    )
+    assert tr("Clicando ponto...") == "Clicking point..."
+    assert (
+        tr("Clique no mapa para selecionar o ponto InSAR mais próximo. Esc cancela.")
+        == "Click the map to select the nearest InSAR point. Esc cancels."
+    )
+    assert (
+        tr("Nenhum ponto InSAR encontrado próximo ao clique.")
+        == "No InSAR point was found near the click."
+    )
+    assert (
+        tr("Ponto FID {fid} selecionado pelo clique no mapa.", fid=123)
+        == "Point FID 123 selected by map click."
+    )
+    assert tr("Seleção por clique cancelada.") == "Click selection canceled."

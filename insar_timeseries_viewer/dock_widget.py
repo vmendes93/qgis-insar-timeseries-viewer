@@ -120,6 +120,7 @@ from .polygon_means import (
     polygon_features_for_scope,
 )
 from .spatial_selection import (
+    PointClickTool,
     PolygonCaptureTool,
     SELECTION_ADD,
     SELECTION_REMOVE,
@@ -127,6 +128,7 @@ from .spatial_selection import (
     SpatialSelectionError,
     build_point_spatial_index,
     configure_persistent_rubber_band,
+    nearest_point_id_at_canvas_point,
     point_ids_intersecting_polygon,
     polygon_in_target_crs,
     resulting_selection_ids,
@@ -170,6 +172,8 @@ class TimeSeriesDockWidget(QDockWidget):
         self._settings_panel_width = DEFAULT_SETTINGS_PANEL_WIDTH
         self._polygon_capture_tool = None
         self._previous_map_tool = None
+        self._point_click_tool = None
+        self._previous_point_click_map_tool = None
         self._area_rubber_band = None
         self._active_feature_rubber_band = None
         self._has_displayed_area = False
@@ -266,6 +270,15 @@ class TimeSeriesDockWidget(QDockWidget):
         mode_row.addStretch(1)
         self.selection_count_label = QLabel("0 selecionadas")
         mode_row.addWidget(self.selection_count_label)
+
+        self.click_point_button = QPushButton("Clicar ponto")
+        self.click_point_button.setToolTip(
+            "Clique no mapa para selecionar o ponto InSAR mais próximo"
+        )
+        self.click_point_button.setCheckable(True)
+        self.click_point_button.setEnabled(False)
+        self.click_point_button.toggled.connect(self._toggle_point_click_tool)
+        mode_row.addWidget(self.click_point_button)
 
         self.zoom_feature_button = QPushButton("Aproximar do ponto")
         self.zoom_feature_button.setToolTip(
@@ -1003,6 +1016,8 @@ class TimeSeriesDockWidget(QDockWidget):
         self.iface.currentLayerChanged.connect(self._on_active_layer_changed)
 
     def shutdown(self) -> None:
+        self._restore_point_click_tool()
+        self._dispose_point_click_tool()
         self._clear_active_feature_marker(remove=True)
         self._dispose_area_tools()
         self._disconnect_current_layer()
@@ -1232,6 +1247,7 @@ class TimeSeriesDockWidget(QDockWidget):
         )
 
     def _disconnect_current_layer(self) -> None:
+        self._restore_point_click_tool()
         self._clear_active_feature_marker()
         if self.current_layer is None:
             return
@@ -1949,6 +1965,147 @@ class TimeSeriesDockWidget(QDockWidget):
             self._area_rubber_band = None
         self._has_displayed_area = False
         self._point_spatial_index = None
+
+    # ---------------------------------------------------------- click-to-plot
+    def _toggle_point_click_tool(self, checked: bool) -> None:
+        if checked:
+            self._start_point_click_tool()
+        else:
+            self._restore_point_click_tool()
+
+    def _start_point_click_tool(self) -> None:
+        if self.current_layer is None or self.current_schema is None:
+            self.status_label.setText(
+                tr("Selecione primeiro uma camada pontual InSAR compatível.")
+            )
+            self.click_point_button.setChecked(False)
+            return
+
+        self._restore_previous_map_tool()
+        canvas = self.iface.mapCanvas()
+        if self._point_click_tool is None:
+            self._point_click_tool = PointClickTool(canvas)
+            self._point_click_tool.pointClicked.connect(self._on_map_point_clicked)
+            self._point_click_tool.canceled.connect(self._on_point_click_canceled)
+            self._point_click_tool.deactivated.connect(
+                self._on_point_click_tool_deactivated
+            )
+
+        active_tool = canvas.mapTool()
+        if active_tool is not self._point_click_tool:
+            self._previous_point_click_map_tool = active_tool
+
+        self.click_point_button.setText(tr("Clicando ponto..."))
+        self.status_label.setText(
+            tr("Clique no mapa para selecionar o ponto InSAR mais próximo. Esc cancela.")
+        )
+        canvas.setMapTool(self._point_click_tool)
+
+    def _on_map_point_clicked(self, map_point) -> None:
+        layer = self.current_layer
+        if layer is None or self.current_schema is None:
+            self.status_label.setText(
+                tr("Selecione primeiro uma camada pontual InSAR compatível.")
+            )
+            self._restore_point_click_tool()
+            return
+
+        try:
+            if self._point_spatial_index is None:
+                self.status_label.setText(
+                    tr("Construindo índice espacial da camada de pontos...")
+                )
+                self._point_spatial_index = build_point_spatial_index(layer)
+
+            feature_id = nearest_point_id_at_canvas_point(
+                layer,
+                map_point,
+                self.iface.mapCanvas(),
+                project=self.project,
+                spatial_index=self._point_spatial_index,
+                tolerance_pixels=10,
+            )
+        except SpatialSelectionError as exc:
+            self.status_label.setText(str(exc))
+            return
+        except Exception as exc:
+            self.status_label.setText(
+                tr(
+                    "Falha inesperada ao selecionar ponto pelo clique: {kind}: {error}",
+                    kind=type(exc).__name__,
+                    error=exc,
+                )
+            )
+            return
+
+        if feature_id is None:
+            self.status_label.setText(
+                tr("Nenhum ponto InSAR encontrado próximo ao clique.")
+            )
+            return
+
+        self.current_feature_id = feature_id
+        layer.selectByIds([feature_id])
+        self._show_active_feature_marker(feature_id)
+        self.status_label.setText(
+            tr("Ponto FID {fid} selecionado pelo clique no mapa.", fid=feature_id)
+        )
+        self._update_selection_action_states()
+
+    def _on_point_click_canceled(self) -> None:
+        self._restore_point_click_tool()
+        self.status_label.setText(tr("Seleção por clique cancelada."))
+
+    def _on_point_click_tool_deactivated(self) -> None:
+        if hasattr(self, "click_point_button"):
+            self.click_point_button.blockSignals(True)
+            self.click_point_button.setChecked(False)
+            self.click_point_button.setText(tr("Clicar ponto"))
+            self.click_point_button.blockSignals(False)
+
+    def _restore_point_click_tool(self) -> None:
+        if self._point_click_tool is None:
+            self._previous_point_click_map_tool = None
+            if hasattr(self, "click_point_button"):
+                self.click_point_button.setText(tr("Clicar ponto"))
+            return
+
+        canvas = self.iface.mapCanvas()
+        if canvas.mapTool() is self._point_click_tool:
+            previous = self._previous_point_click_map_tool
+            try:
+                if previous is not None and previous is not self._point_click_tool:
+                    canvas.setMapTool(previous)
+                else:
+                    canvas.unsetMapTool(self._point_click_tool)
+            except RuntimeError:
+                try:
+                    canvas.unsetMapTool(self._point_click_tool)
+                except RuntimeError:
+                    pass
+
+        self._previous_point_click_map_tool = None
+        if hasattr(self, "click_point_button"):
+            self.click_point_button.blockSignals(True)
+            self.click_point_button.setChecked(False)
+            self.click_point_button.setText(tr("Clicar ponto"))
+            self.click_point_button.blockSignals(False)
+
+    def _dispose_point_click_tool(self) -> None:
+        if self._point_click_tool is None:
+            return
+
+        for signal, slot in (
+            (self._point_click_tool.pointClicked, self._on_map_point_clicked),
+            (self._point_click_tool.canceled, self._on_point_click_canceled),
+            (self._point_click_tool.deactivated, self._on_point_click_tool_deactivated),
+        ):
+            try:
+                signal.disconnect(slot)
+            except (TypeError, RuntimeError):
+                pass
+        self._point_click_tool = None
+        self._previous_point_click_map_tool = None
 
     # ------------------------------------------------------- point navigation
     def _update_selection_action_states(self) -> None:
