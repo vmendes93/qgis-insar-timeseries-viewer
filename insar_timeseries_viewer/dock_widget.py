@@ -3226,7 +3226,6 @@ class TimeSeriesDockWidget(QDockWidget):
         annotation.set_visible(True)
         self.canvas.draw_idle()
 
-
     def _hover_annotation_placement(self, axes, event):
         bbox = axes.bbox
         x_mid = bbox.x0 + bbox.width * 0.5
