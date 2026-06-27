@@ -39,6 +39,7 @@ insar_timeseries_viewer/metadata.txt
 ```
 
 The generated ZIP and SHA-256 checksum are first created in `dist/`.
+Release 1.1.0 test plan: [`docs/RELEASE_1_1_0.md`](docs/RELEASE_1_1_0.md).
 
 By default, both files are also copied to the directory containing this repository. For the current project layout, that directory is:
 

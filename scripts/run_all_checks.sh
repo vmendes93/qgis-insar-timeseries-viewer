@@ -34,7 +34,11 @@ echo "[3/4] Ruff"
 python3 -m ruff check scripts tests insar_timeseries_viewer
 
 echo
-echo "[4/4] Security and QGIS style"
+echo "[4/5] Release validation"
+python3 scripts/validate_release.py
+
+echo
+echo "[5/5] Security and QGIS style"
 bash scripts/run_quality_checks.sh
 
 echo
