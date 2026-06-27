@@ -89,3 +89,14 @@ def test_field_mapping_dialog_marks_clear_request(layer):
     dialog.request_clear_mapping()
 
     assert dialog.clear_requested is True
+
+
+def test_field_mapping_dialog_summarizes_detected_temporal_fields(layer):
+    dialog = FieldMappingDialog(layer)
+
+    summary = dialog.temporal_fields_summary()
+
+    assert "2 campos DYYYYMMDD detectados" in summary
+    assert "D20240101 (01/01/2024)" in summary
+    assert "D20240201 (01/02/2024)" in summary
+    assert dialog.field_mapping().date_fields is None

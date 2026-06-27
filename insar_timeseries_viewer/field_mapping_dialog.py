@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Optional
 
 from qgis.PyQt.QtWidgets import (
@@ -19,7 +20,7 @@ from qgis.PyQt.QtWidgets import (
 from qgis.core import QgsVectorLayer
 
 from .i18n import tr
-from .insar_timeseries_reader import LayerFieldMapping
+from .insar_timeseries_reader import DATE_FIELD_PATTERN, LayerFieldMapping
 
 
 _AUTO_VALUE = "__auto__"
@@ -115,6 +116,22 @@ class FieldMappingDialog(QDialog):
         form.addRow(tr("Sentinela NoData:"), self.sentinel_combo)
         layout.addLayout(form)
 
+        self.temporal_fields_title = QLabel(tr("Campos temporais:"))
+        layout.addWidget(self.temporal_fields_title)
+
+        self.temporal_fields_label = QLabel(self.temporal_fields_summary())
+        self.temporal_fields_label.setWordWrap(True)
+        layout.addWidget(self.temporal_fields_label)
+
+        self.temporal_fields_note = QLabel(
+            tr(
+                "Nesta versão, campos temporais customizados ainda não são editados "
+                "neste diálogo. O leitor usa automaticamente campos DYYYYMMDD."
+            )
+        )
+        self.temporal_fields_note.setWordWrap(True)
+        layout.addWidget(self.temporal_fields_note)
+
         self.button_box = QDialogButtonBox(
             QDialogButtonBox.Save | QDialogButtonBox.Cancel
         )
@@ -128,6 +145,45 @@ class FieldMappingDialog(QDialog):
         self.button_box.rejected.connect(self.reject)
         self.clear_button.clicked.connect(self.request_clear_mapping)
         layout.addWidget(self.button_box)
+
+    def temporal_fields_summary(self) -> str:
+        detected_fields = self._detected_temporal_fields()
+        if not detected_fields:
+            return tr("Nenhum campo temporal DYYYYMMDD detectado.")
+
+        fields = ", ".join(
+            f"{field_name} ({formatted_date})"
+            for field_name, formatted_date in detected_fields
+        )
+        return tr(
+            "{count} campos DYYYYMMDD detectados: {fields}",
+            count=len(detected_fields),
+            fields=fields,
+        )
+
+    def _detected_temporal_fields(self) -> tuple[tuple[str, str], ...]:
+        detected_fields = []
+        for field_name in self._field_names:
+            match = DATE_FIELD_PATTERN.fullmatch(field_name)
+            if match is None:
+                continue
+
+            try:
+                acquisition_date = datetime.strptime(
+                    match.group("date"),
+                    "%Y%m%d",
+                ).date()
+            except ValueError:
+                continue
+
+            detected_fields.append((field_name, acquisition_date))
+
+        detected_fields.sort(key=lambda item: item[1])
+
+        return tuple(
+            (field_name, f"{acquisition_date:%d/%m/%Y}")
+            for field_name, acquisition_date in detected_fields
+        )
 
     def _build_component_combo(self) -> QComboBox:
         combo = QComboBox()
