@@ -179,3 +179,22 @@ def test_csv_export_strings_translate_to_english():
         == "CSV data exported to /tmp/a.csv (2 row(s))."
     )
     assert tr("Exportação CSV concluída") == "CSV export complete"
+
+def test_layer_report_strings_translate_to_english():
+    initialize_locale("en", log=False)
+
+    assert tr("Relatório da camada") == "Layer report"
+    assert tr("Atualizar relatório") == "Refresh report"
+    assert tr("Copiar relatório") == "Copy report"
+    assert tr("Nenhuma camada ativa.") == "No active layer."
+    assert (
+        tr("Relatório da camada copiado para a área de transferência.")
+        == "Layer report copied to the clipboard."
+    )
+    assert tr("Camada: {value}", value="Layer A") == "Layer: Layer A"
+    assert tr("Pontos: {value}", value=20) == "Points: 20"
+    assert (
+        tr("Aquisições: {count} ({start} a {end})", count=2, start="01/01", end="01/02")
+        == "Acquisitions: 2 (01/01 to 01/02)"
+    )
+    assert tr("Avisos: nenhum") == "Warnings: none"

@@ -18,6 +18,7 @@ import numpy as np
 from qgis.PyQt.QtCore import QDate, QTimer, Qt
 from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtWidgets import (
+    QApplication,
     QCheckBox,
     QComboBox,
     QDateEdit,
@@ -77,6 +78,7 @@ from .layer_mapping_store import (
     save_layer_field_mapping,
 )
 from .layer_schema_service import SavedLayerMappingError, resolve_layer_schema
+from .layer_report import build_layer_report, format_layer_report
 from .orbit_direction import (
     ORBIT_ASCENDING,
     ORBIT_AUTO,
@@ -192,6 +194,7 @@ class TimeSeriesDockWidget(QDockWidget):
         self._displayed_mean_source_series: list[TimeSeriesData] = []
         self._displayed_polygon_groups = []
         self._additional_field_checks: dict[str, QCheckBox] = {}
+        self._current_layer_report_text = ""
 
         self._build_ui()
         self._connect_global_signals()
@@ -318,6 +321,34 @@ class TimeSeriesDockWidget(QDockWidget):
         self.layer_info = QLabel("Nenhuma camada compatível selecionada.")
         self.layer_info.setWordWrap(True)
         parent_layout.addWidget(self.layer_info)
+
+        self.layer_report_group = QGroupBox("Relatório da camada")
+        layer_report_layout = QVBoxLayout(self.layer_report_group)
+        layer_report_layout.setSpacing(4)
+
+        layer_report_buttons = QHBoxLayout()
+        self.refresh_layer_report_button = QPushButton("Atualizar relatório")
+        self.refresh_layer_report_button.setToolTip(
+            "Atualiza o resumo estrutural da camada InSAR ativa"
+        )
+        self.refresh_layer_report_button.clicked.connect(self._update_layer_report)
+        layer_report_buttons.addWidget(self.refresh_layer_report_button)
+
+        self.copy_layer_report_button = QPushButton("Copiar relatório")
+        self.copy_layer_report_button.setToolTip(
+            "Copia o relatório da camada para a área de transferência"
+        )
+        self.copy_layer_report_button.clicked.connect(self._copy_layer_report)
+        layer_report_buttons.addWidget(self.copy_layer_report_button)
+        layer_report_buttons.addStretch(1)
+        layer_report_layout.addLayout(layer_report_buttons)
+
+        self.layer_report_label = QLabel("Nenhuma camada ativa.")
+        self.layer_report_label.setWordWrap(True)
+        self.layer_report_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        layer_report_layout.addWidget(self.layer_report_label)
+        self._clear_layer_report()
+        parent_layout.addWidget(self.layer_report_group)
 
     def _build_visualization_panel(self) -> None:
         main_layout = QVBoxLayout(self.visualization_panel)
@@ -1202,6 +1233,7 @@ class TimeSeriesDockWidget(QDockWidget):
 
         if not layer_id:
             self.layer_info.setText("Nenhuma camada compatível selecionada.")
+            self._clear_layer_report()
             self.selection_count_label.setText("0 selecionadas")
             self._sync_orbit_control()
             self._refresh_additional_property_fields()
@@ -1239,6 +1271,7 @@ class TimeSeriesDockWidget(QDockWidget):
         self._sync_x_dates_for_schema(schema)
         self._refresh_additional_property_fields()
         self._update_layer_info()
+        self._update_layer_report()
         self._update_area_control_states()
         self._update_from_current_selection()
 
@@ -1257,6 +1290,39 @@ class TimeSeriesDockWidget(QDockWidget):
                 start=f"{schema.first_acquisition:%d/%m/%Y}",
                 end=f"{schema.last_acquisition:%d/%m/%Y}",
             )
+        )
+
+    def _update_layer_report(self, *_args) -> None:
+        if self.current_layer is None or self.current_schema is None:
+            self._clear_layer_report()
+            return
+        report = build_layer_report(
+            self.current_layer,
+            self.current_schema,
+            component_label=self._effective_component_label(),
+        )
+        self._current_layer_report_text = format_layer_report(report)
+        self.layer_report_label.setText(self._current_layer_report_text)
+        self.refresh_layer_report_button.setEnabled(True)
+        self.copy_layer_report_button.setEnabled(True)
+
+    def _clear_layer_report(self) -> None:
+        self._current_layer_report_text = ""
+        if not hasattr(self, "layer_report_label"):
+            return
+        self.layer_report_label.setText("Nenhuma camada ativa.")
+        self.refresh_layer_report_button.setEnabled(False)
+        self.copy_layer_report_button.setEnabled(False)
+
+    def _copy_layer_report(self, *_args) -> None:
+        if not self._current_layer_report_text:
+            self.status_label.setText(
+                tr("Nenhum relatório de camada disponível para copiar.")
+            )
+            return
+        QApplication.clipboard().setText(self._current_layer_report_text)
+        self.status_label.setText(
+            tr("Relatório da camada copiado para a área de transferência.")
         )
 
     def _disconnect_current_layer(self) -> None:
