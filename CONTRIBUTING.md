@@ -17,12 +17,10 @@ On Windows, activate with `.venv\Scripts\Activate.ps1`.
 Before opening a pull request, run:
 
 ```bash
-python -m ruff check insar_timeseries_viewer tests scripts
-python -m pytest tests/unit
-python scripts/validate_release.py
+bash scripts/run_all_checks.sh
 ```
 
-Changes affecting PyQGIS behavior must also run `python -m pytest tests/qgis` from a QGIS Python environment and complete the relevant manual checks.
+Changes affecting PyQGIS behavior must still be validated from a QGIS Python environment when the local environment cannot run `tests/qgis`. Complete the relevant manual checks before requesting review or preparing a release.
 
 ## Pull requests
 

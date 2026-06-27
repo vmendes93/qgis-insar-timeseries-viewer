@@ -1,0 +1,6 @@
+# Repository ownership
+#
+# Every change is owned by the maintainer. Keep this file small and explicit so
+# branch protection can require owner review later without surprising scope gaps.
+
+* @vmendes93
