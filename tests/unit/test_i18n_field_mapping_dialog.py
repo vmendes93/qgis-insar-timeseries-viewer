@@ -115,3 +115,12 @@ def test_point_navigation_strings_translate_to_english():
         tr("Mapa aproximado para FID {fid}.", fid=42)
         == "Map zoomed to FID 42."
     )
+
+
+def test_trendline_velocity_label_translates_to_english():
+    initialize_locale("en", log=False)
+
+    assert (
+        tr("Trendline — VEL {value} mm/yr", value="-12.5")
+        == "Trendline — VEL -12.5 mm/yr"
+    )

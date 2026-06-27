@@ -2917,7 +2917,8 @@ class TimeSeriesDockWidget(QDockWidget):
             enabled=self.settings.export_include_header,
         )
         if self.settings.export_include_header:
-            figure.tight_layout(rect=(0.0, 0.0, 1.0, 0.955), h_pad=1.2)
+            top = 0.925 if "\n" in header else 0.955
+            figure.tight_layout(rect=(0.0, 0.0, 1.0, top), h_pad=1.2)
         else:
             figure.tight_layout(h_pad=1.2)
 
@@ -2959,10 +2960,11 @@ class TimeSeriesDockWidget(QDockWidget):
             f"{self._header_number(series.cumulative_displacement)} | "
             f"{velocity_std_name}: {self._header_number(series.velocity_std)}"
         )
-        return header + self._additional_header_suffix_for_ids(
+        suffix = self._additional_header_suffix_for_ids(
             [series.feature_id],
             mode="single",
         )
+        return self._join_export_header(header, suffix)
 
     def _mean_export_header(
         self,
@@ -2980,10 +2982,11 @@ class TimeSeriesDockWidget(QDockWidget):
             f"{velocity_std_name}: "
             f"{self._header_number(result.mean_velocity_std)}"
         )
-        return header + self._additional_header_suffix_for_ids(
+        suffix = self._additional_header_suffix_for_ids(
             point_ids,
             mode="mean",
         )
+        return self._join_export_header(header, suffix)
 
     def _multiple_series_export_header(self, series_list) -> str:
         schema = self.current_schema
@@ -3000,10 +3003,11 @@ class TimeSeriesDockWidget(QDockWidget):
             f"Cumulative Displacement: {self._header_range(cumulative)} | "
             f"{velocity_std_name}: {self._header_range(velocity_stds)}"
         )
-        return header + self._additional_header_suffix_for_ids(
+        suffix = self._additional_header_suffix_for_ids(
             [item.feature_id for item in series_list],
             mode="range",
         )
+        return self._join_export_header(header, suffix)
 
     def _polygon_group_export_header(self, group) -> str:
         return (
@@ -3032,7 +3036,8 @@ class TimeSeriesDockWidget(QDockWidget):
             f"Cumulative Displacement: {self._header_range(cumulative)} | "
             f"{velocity_std_name}: {self._header_range(velocity_stds)}"
         )
-        return header + self._additional_header_suffix_for_groups(groups)
+        suffix = self._additional_header_suffix_for_groups(groups)
+        return self._join_export_header(header, suffix)
 
     def _current_export_basename(self) -> str:
         mode = self._displayed_mode or self.settings.display_mode
@@ -3081,6 +3086,15 @@ class TimeSeriesDockWidget(QDockWidget):
     def _remember_export_directory(self, directory: Path) -> None:
         self.settings.export_last_dir = str(directory)
         self.settings.save(self.project)
+
+    @staticmethod
+    def _join_export_header(primary: str, suffix: str) -> str:
+        suffix = str(suffix or "").strip()
+        if not suffix:
+            return primary
+        if suffix.startswith("| "):
+            suffix = suffix[2:].strip()
+        return f"{primary}\n{suffix}"
 
     @staticmethod
     def _header_number(value) -> str:

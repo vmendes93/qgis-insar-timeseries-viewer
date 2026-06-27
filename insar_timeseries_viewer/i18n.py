@@ -170,6 +170,7 @@ PT_TO_EN = {
     "Todas as séries": "All series",
     "Aplicar a:": "Apply to:",
     "A trendline é calculada localmente e não substitui o VEL fornecido pelo produto.": "The trendline is calculated locally and does not replace the product VEL.",
+    "Trendline — VEL {value} mm/yr": "Trendline — VEL {value} mm/yr",
     # Grid
     "Gridlines": "Gridlines",
     "Mostrar gridlines horizontais": "Show horizontal gridlines",
