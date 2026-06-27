@@ -323,12 +323,9 @@ class FieldMappingDialog(QDialog):
             use_item = self.temporal_fields_table.item(row, 0)
             field_item = self.temporal_fields_table.item(row, 1)
             date_edit = self.temporal_fields_table.cellWidget(row, 2)
-            if (
-                use_item is None
-                or field_item is None
-                or date_edit is None
-                or use_item.checkState() != Qt.Checked
-            ):
+            if use_item is None or field_item is None or date_edit is None:
+                continue
+            if use_item.checkState() != Qt.Checked:
                 continue
 
             date_fields.append(
