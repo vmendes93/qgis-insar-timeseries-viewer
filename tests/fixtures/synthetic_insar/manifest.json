@@ -1,0 +1,2090 @@
+{
+  "checksums": {
+    "README.md": "cbe9864fa54dd1d223833e53fb42cc15f263a7f0ec58d76fcc0c59250943ba37",
+    "synthetic_east_west.cpg": "146d6789ffe033a5297c1ad046e6a62ee35319b86b021444f05b6ea2aa8a1f4a",
+    "synthetic_east_west.dbf": "201e411cccaa0e76d335d491fbb68bd83c0e5f872bc658ac4b083255d5143f0a",
+    "synthetic_east_west.prj": "974a5d7d0b7f4ba7773ab11797cdbee00202b1639d25ae2f3ce5f446e590d84d",
+    "synthetic_east_west.shp": "bdaa7402e7104332eec3dc3aaa2da61ae1db8ca4755fa619d79bb6501486c25c",
+    "synthetic_east_west.shx": "72358bcdd560d0b810d7f42e010141b4c3f24e2b257ace5dd200488b029fa7bf",
+    "synthetic_los_ascending.cpg": "146d6789ffe033a5297c1ad046e6a62ee35319b86b021444f05b6ea2aa8a1f4a",
+    "synthetic_los_ascending.dbf": "125c906953cb3f6b859b8603cff0143b23e9baffb07dfc9e5e7a315565b3b0c2",
+    "synthetic_los_ascending.prj": "974a5d7d0b7f4ba7773ab11797cdbee00202b1639d25ae2f3ce5f446e590d84d",
+    "synthetic_los_ascending.shp": "bdaa7402e7104332eec3dc3aaa2da61ae1db8ca4755fa619d79bb6501486c25c",
+    "synthetic_los_ascending.shx": "72358bcdd560d0b810d7f42e010141b4c3f24e2b257ace5dd200488b029fa7bf",
+    "synthetic_los_descending.cpg": "146d6789ffe033a5297c1ad046e6a62ee35319b86b021444f05b6ea2aa8a1f4a",
+    "synthetic_los_descending.dbf": "21dd9b269c29835ac030d4f85337b9491769cf406126937591209beeaf461cee",
+    "synthetic_los_descending.prj": "974a5d7d0b7f4ba7773ab11797cdbee00202b1639d25ae2f3ce5f446e590d84d",
+    "synthetic_los_descending.shp": "bdaa7402e7104332eec3dc3aaa2da61ae1db8ca4755fa619d79bb6501486c25c",
+    "synthetic_los_descending.shx": "72358bcdd560d0b810d7f42e010141b4c3f24e2b257ace5dd200488b029fa7bf",
+    "synthetic_vertical.cpg": "146d6789ffe033a5297c1ad046e6a62ee35319b86b021444f05b6ea2aa8a1f4a",
+    "synthetic_vertical.dbf": "61df2fc991f2f3bab47b5a95bc5418b422c9b08338f84a47b3596d308ff000ed",
+    "synthetic_vertical.prj": "974a5d7d0b7f4ba7773ab11797cdbee00202b1639d25ae2f3ce5f446e590d84d",
+    "synthetic_vertical.shp": "bdaa7402e7104332eec3dc3aaa2da61ae1db8ca4755fa619d79bb6501486c25c",
+    "synthetic_vertical.shx": "72358bcdd560d0b810d7f42e010141b4c3f24e2b257ace5dd200488b029fa7bf"
+  },
+  "conventions": {
+    "canonical_displacement_unit": "mm",
+    "east_west_positive": "eastward",
+    "los_positive": "toward_satellite",
+    "vertical_positive": "upward"
+  },
+  "crs": {
+    "auth_code": 31983,
+    "auth_name": "EPSG",
+    "name": "SIRGAS 2000 / UTM zone 23S",
+    "prj_wkt": "PROJCS[\"SIRGAS_2000_UTM_Zone_23S\",GEOGCS[\"GCS_SIRGAS_2000\",DATUM[\"D_SIRGAS_2000\",SPHEROID[\"GRS_1980\",6378137.0,298.257222101]],PRIMEM[\"Greenwich\",0.0],UNIT[\"Degree\",0.0174532925199433]],PROJECTION[\"Transverse_Mercator\"],PARAMETER[\"False_Easting\",500000.0],PARAMETER[\"False_Northing\",10000000.0],PARAMETER[\"Central_Meridian\",-45.0],PARAMETER[\"Scale_Factor\",0.9996],PARAMETER[\"Latitude_Of_Origin\",0.0],UNIT[\"Meter\",1.0]]"
+  },
+  "datasets": {
+    "synthetic_east_west": {
+      "auto_mappings": {
+        "component": "AXIS",
+        "displacement_unit": "UOM",
+        "identifier": "STATION",
+        "sentinel": "NODATA"
+      },
+      "dbf_fields": [
+        {
+          "decimal": 0,
+          "name": "STATION",
+          "type": "C",
+          "width": 8
+        },
+        {
+          "decimal": 0,
+          "name": "AXIS",
+          "type": "C",
+          "width": 8
+        },
+        {
+          "decimal": 0,
+          "name": "UOM",
+          "type": "C",
+          "width": 8
+        },
+        {
+          "decimal": 1,
+          "name": "NODATA",
+          "type": "N",
+          "width": 12
+        },
+        {
+          "decimal": 4,
+          "name": "MOTION",
+          "type": "N",
+          "width": 12
+        },
+        {
+          "decimal": 4,
+          "name": "UNCERT",
+          "type": "N",
+          "width": 12
+        },
+        {
+          "decimal": 0,
+          "name": "CLASS",
+          "type": "C",
+          "width": 16
+        },
+        {
+          "decimal": 4,
+          "name": "D20240205",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 4,
+          "name": "D20240324",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 4,
+          "name": "D20240511",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 0,
+          "name": "D20240628",
+          "type": "C",
+          "width": 16
+        },
+        {
+          "decimal": 4,
+          "name": "D20240815",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 4,
+          "name": "D20241002",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 4,
+          "name": "D20241119",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 4,
+          "name": "D20250106",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 4,
+          "name": "D20250223",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 4,
+          "name": "D20250412",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 4,
+          "name": "D20240112",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 4,
+          "name": "D20240229",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 4,
+          "name": "D20240417",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 4,
+          "name": "D20240604",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 4,
+          "name": "D20240722",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 4,
+          "name": "D20240908",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 4,
+          "name": "D20241026",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 4,
+          "name": "D20241213",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 0,
+          "name": "D20250130",
+          "type": "C",
+          "width": 16
+        },
+        {
+          "decimal": 4,
+          "name": "D20250319",
+          "type": "N",
+          "width": 14
+        }
+      ],
+      "displacement_unit": "cm",
+      "expected_counts": {
+        "features": 20,
+        "invalid": 1,
+        "missing": 22,
+        "observations": 400,
+        "valid": 377
+      },
+      "field_order": [
+        "STATION",
+        "AXIS",
+        "UOM",
+        "NODATA",
+        "MOTION",
+        "UNCERT",
+        "CLASS",
+        "D20240205",
+        "D20240324",
+        "D20240511",
+        "D20240628",
+        "D20240815",
+        "D20241002",
+        "D20241119",
+        "D20250106",
+        "D20250223",
+        "D20250412",
+        "D20240112",
+        "D20240229",
+        "D20240417",
+        "D20240604",
+        "D20240722",
+        "D20240908",
+        "D20241026",
+        "D20241213",
+        "D20250130",
+        "D20250319"
+      ],
+      "filename_stem": "synthetic_east_west",
+      "invalid_cell_masks": {
+        "P14": [
+          "D20240628"
+        ]
+      },
+      "logical_component": "east_west",
+      "manual_mappings": {
+        "velocity": "MOTION",
+        "velocity_uncertainty": "UNCERT"
+      },
+      "missing_value_sentinels": [
+        -32768.0
+      ],
+      "null_masks": {
+        "P16": [
+          "D20241026",
+          "D20241119",
+          "D20241213"
+        ]
+      },
+      "orbit": null,
+      "sentinel_masks": {
+        "P15": [
+          "D20240511",
+          "D20240604",
+          "D20240628",
+          "D20240722"
+        ],
+        "P19": [
+          "D20240324",
+          "D20240417",
+          "D20240511",
+          "D20240604",
+          "D20240628",
+          "D20240722",
+          "D20240815",
+          "D20240908",
+          "D20241002",
+          "D20241026",
+          "D20241119",
+          "D20241213",
+          "D20250106",
+          "D20250130",
+          "D20250223"
+        ]
+      },
+      "temporal_field_order_chronological": [
+        "D20240112",
+        "D20240205",
+        "D20240229",
+        "D20240324",
+        "D20240417",
+        "D20240511",
+        "D20240604",
+        "D20240628",
+        "D20240722",
+        "D20240815",
+        "D20240908",
+        "D20241002",
+        "D20241026",
+        "D20241119",
+        "D20241213",
+        "D20250106",
+        "D20250130",
+        "D20250223",
+        "D20250319",
+        "D20250412"
+      ],
+      "temporal_field_order_physical": [
+        "D20240205",
+        "D20240324",
+        "D20240511",
+        "D20240628",
+        "D20240815",
+        "D20241002",
+        "D20241119",
+        "D20250106",
+        "D20250223",
+        "D20250412",
+        "D20240112",
+        "D20240229",
+        "D20240417",
+        "D20240604",
+        "D20240722",
+        "D20240908",
+        "D20241026",
+        "D20241213",
+        "D20250130",
+        "D20250319"
+      ],
+      "velocity_unit": "cm/year"
+    },
+    "synthetic_los_ascending": {
+      "auto_mappings": {
+        "component": "COMPONENT",
+        "displacement_unit": "UNIT",
+        "identifier": "CODE",
+        "orbit": "ORBIT",
+        "sentinel": "NODATA",
+        "velocity": "VEL",
+        "velocity_uncertainty": "V_STDEV"
+      },
+      "dbf_fields": [
+        {
+          "decimal": 0,
+          "name": "CODE",
+          "type": "C",
+          "width": 8
+        },
+        {
+          "decimal": 0,
+          "name": "COMPONENT",
+          "type": "C",
+          "width": 9
+        },
+        {
+          "decimal": 0,
+          "name": "ORBIT",
+          "type": "C",
+          "width": 4
+        },
+        {
+          "decimal": 0,
+          "name": "UNIT",
+          "type": "C",
+          "width": 8
+        },
+        {
+          "decimal": 3,
+          "name": "NODATA",
+          "type": "N",
+          "width": 12
+        },
+        {
+          "decimal": 3,
+          "name": "VEL",
+          "type": "N",
+          "width": 12
+        },
+        {
+          "decimal": 3,
+          "name": "V_STDEV",
+          "type": "N",
+          "width": 12
+        },
+        {
+          "decimal": 2,
+          "name": "HEIGHT",
+          "type": "N",
+          "width": 10
+        },
+        {
+          "decimal": 3,
+          "name": "COHERENCE",
+          "type": "N",
+          "width": 5
+        },
+        {
+          "decimal": 3,
+          "name": "D20240112",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20240205",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20240229",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20240324",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20240417",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20240511",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20240604",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20240628",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20240722",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20240815",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20240908",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20241002",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20241026",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20241119",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20241213",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20250106",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20250130",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20250223",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20250319",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20250412",
+          "type": "N",
+          "width": 14
+        }
+      ],
+      "displacement_unit": "mm",
+      "expected_counts": {
+        "features": 20,
+        "invalid": 0,
+        "missing": 24,
+        "observations": 400,
+        "valid": 376
+      },
+      "field_order": [
+        "CODE",
+        "COMPONENT",
+        "ORBIT",
+        "UNIT",
+        "NODATA",
+        "VEL",
+        "V_STDEV",
+        "HEIGHT",
+        "COHERENCE",
+        "D20240112",
+        "D20240205",
+        "D20240229",
+        "D20240324",
+        "D20240417",
+        "D20240511",
+        "D20240604",
+        "D20240628",
+        "D20240722",
+        "D20240815",
+        "D20240908",
+        "D20241002",
+        "D20241026",
+        "D20241119",
+        "D20241213",
+        "D20250106",
+        "D20250130",
+        "D20250223",
+        "D20250319",
+        "D20250412"
+      ],
+      "filename_stem": "synthetic_los_ascending",
+      "invalid_cell_masks": {},
+      "logical_component": "LOS",
+      "manual_mappings": {},
+      "missing_value_sentinels": [
+        999.0
+      ],
+      "null_masks": {
+        "P16": [
+          "D20240722",
+          "D20240815"
+        ]
+      },
+      "orbit": "ASC",
+      "sentinel_masks": {
+        "P15": [
+          "D20240417",
+          "D20240511",
+          "D20240604",
+          "D20240628"
+        ],
+        "P19": [
+          "D20240205",
+          "D20240229",
+          "D20240324",
+          "D20240417",
+          "D20240511",
+          "D20240604",
+          "D20240628",
+          "D20240722",
+          "D20240815",
+          "D20240908",
+          "D20241002",
+          "D20241026",
+          "D20241119",
+          "D20241213",
+          "D20250106",
+          "D20250130",
+          "D20250223",
+          "D20250319"
+        ]
+      },
+      "temporal_field_order_chronological": [
+        "D20240112",
+        "D20240205",
+        "D20240229",
+        "D20240324",
+        "D20240417",
+        "D20240511",
+        "D20240604",
+        "D20240628",
+        "D20240722",
+        "D20240815",
+        "D20240908",
+        "D20241002",
+        "D20241026",
+        "D20241119",
+        "D20241213",
+        "D20250106",
+        "D20250130",
+        "D20250223",
+        "D20250319",
+        "D20250412"
+      ],
+      "temporal_field_order_physical": [
+        "D20240112",
+        "D20240205",
+        "D20240229",
+        "D20240324",
+        "D20240417",
+        "D20240511",
+        "D20240604",
+        "D20240628",
+        "D20240722",
+        "D20240815",
+        "D20240908",
+        "D20241002",
+        "D20241026",
+        "D20241119",
+        "D20241213",
+        "D20250106",
+        "D20250130",
+        "D20250223",
+        "D20250319",
+        "D20250412"
+      ],
+      "velocity_unit": "mm/year"
+    },
+    "synthetic_los_descending": {
+      "auto_mappings": {
+        "component": "COMP",
+        "displacement_unit": "UOM",
+        "identifier": "POINT_ID",
+        "orbit": "PASS",
+        "sentinel": "NODATA",
+        "velocity": "RATE_MM_Y",
+        "velocity_uncertainty": "RATE_ERR"
+      },
+      "dbf_fields": [
+        {
+          "decimal": 3,
+          "name": "D20250412",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20250319",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20250223",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20250130",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20250106",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20241213",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20241119",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20241026",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20241002",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20240908",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20240815",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20240722",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20240628",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20240604",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20240511",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20240417",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20240324",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20240229",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20240205",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20240112",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 0,
+          "name": "POINT_ID",
+          "type": "C",
+          "width": 8
+        },
+        {
+          "decimal": 0,
+          "name": "PASS",
+          "type": "C",
+          "width": 4
+        },
+        {
+          "decimal": 0,
+          "name": "COMP",
+          "type": "C",
+          "width": 8
+        },
+        {
+          "decimal": 0,
+          "name": "UOM",
+          "type": "C",
+          "width": 8
+        },
+        {
+          "decimal": 3,
+          "name": "NODATA",
+          "type": "N",
+          "width": 12
+        },
+        {
+          "decimal": 3,
+          "name": "RATE_MM_Y",
+          "type": "N",
+          "width": 12
+        },
+        {
+          "decimal": 3,
+          "name": "RATE_ERR",
+          "type": "N",
+          "width": 12
+        },
+        {
+          "decimal": 3,
+          "name": "QUALITY",
+          "type": "N",
+          "width": 5
+        }
+      ],
+      "displacement_unit": "mm",
+      "expected_counts": {
+        "features": 20,
+        "invalid": 0,
+        "missing": 24,
+        "observations": 400,
+        "valid": 376
+      },
+      "field_order": [
+        "D20250412",
+        "D20250319",
+        "D20250223",
+        "D20250130",
+        "D20250106",
+        "D20241213",
+        "D20241119",
+        "D20241026",
+        "D20241002",
+        "D20240908",
+        "D20240815",
+        "D20240722",
+        "D20240628",
+        "D20240604",
+        "D20240511",
+        "D20240417",
+        "D20240324",
+        "D20240229",
+        "D20240205",
+        "D20240112",
+        "POINT_ID",
+        "PASS",
+        "COMP",
+        "UOM",
+        "NODATA",
+        "RATE_MM_Y",
+        "RATE_ERR",
+        "QUALITY"
+      ],
+      "filename_stem": "synthetic_los_descending",
+      "invalid_cell_masks": {},
+      "logical_component": "LOS",
+      "manual_mappings": {},
+      "missing_value_sentinels": [
+        -9999.0
+      ],
+      "null_masks": {
+        "P16": [
+          "D20240604",
+          "D20240628",
+          "D20240722",
+          "D20240815"
+        ]
+      },
+      "orbit": "DESC",
+      "sentinel_masks": {
+        "P15": [
+          "D20240112",
+          "D20240205",
+          "D20240722"
+        ],
+        "P19": [
+          "D20240205",
+          "D20240229",
+          "D20240324",
+          "D20240417",
+          "D20240511",
+          "D20240604",
+          "D20240628",
+          "D20240722",
+          "D20240815",
+          "D20241002",
+          "D20241026",
+          "D20241119",
+          "D20241213",
+          "D20250106",
+          "D20250130",
+          "D20250223",
+          "D20250319"
+        ]
+      },
+      "temporal_field_order_chronological": [
+        "D20240112",
+        "D20240205",
+        "D20240229",
+        "D20240324",
+        "D20240417",
+        "D20240511",
+        "D20240604",
+        "D20240628",
+        "D20240722",
+        "D20240815",
+        "D20240908",
+        "D20241002",
+        "D20241026",
+        "D20241119",
+        "D20241213",
+        "D20250106",
+        "D20250130",
+        "D20250223",
+        "D20250319",
+        "D20250412"
+      ],
+      "temporal_field_order_physical": [
+        "D20250412",
+        "D20250319",
+        "D20250223",
+        "D20250130",
+        "D20250106",
+        "D20241213",
+        "D20241119",
+        "D20241026",
+        "D20241002",
+        "D20240908",
+        "D20240815",
+        "D20240722",
+        "D20240628",
+        "D20240604",
+        "D20240511",
+        "D20240417",
+        "D20240324",
+        "D20240229",
+        "D20240205",
+        "D20240112"
+      ],
+      "velocity_unit": "mm/year"
+    },
+    "synthetic_vertical": {
+      "auto_mappings": {},
+      "dbf_fields": [
+        {
+          "decimal": 3,
+          "name": "QUALITY",
+          "type": "N",
+          "width": 5
+        },
+        {
+          "decimal": 3,
+          "name": "D20240112",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20240229",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20240417",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20240604",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20240722",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20240908",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20241026",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20241213",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20250130",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20250319",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 2,
+          "name": "ELEV_M",
+          "type": "N",
+          "width": 10
+        },
+        {
+          "decimal": 3,
+          "name": "D20240205",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20240324",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20240511",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20240628",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20240815",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20241002",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20241119",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20250106",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20250223",
+          "type": "N",
+          "width": 14
+        },
+        {
+          "decimal": 3,
+          "name": "D20250412",
+          "type": "N",
+          "width": 14
+        }
+      ],
+      "displacement_unit": "mm",
+      "expected_counts": {
+        "features": 20,
+        "invalid": 0,
+        "missing": 25,
+        "observations": 400,
+        "valid": 375
+      },
+      "field_order": [
+        "QUALITY",
+        "D20240112",
+        "D20240229",
+        "D20240417",
+        "D20240604",
+        "D20240722",
+        "D20240908",
+        "D20241026",
+        "D20241213",
+        "D20250130",
+        "D20250319",
+        "ELEV_M",
+        "D20240205",
+        "D20240324",
+        "D20240511",
+        "D20240628",
+        "D20240815",
+        "D20241002",
+        "D20241119",
+        "D20250106",
+        "D20250223",
+        "D20250412"
+      ],
+      "filename_stem": "synthetic_vertical",
+      "invalid_cell_masks": {},
+      "logical_component": "vertical",
+      "manual_mappings": {
+        "component_constant": "vertical",
+        "displacement_unit_constant": "mm"
+      },
+      "missing_value_sentinels": [],
+      "null_masks": {
+        "P15": [
+          "D20240229",
+          "D20240324",
+          "D20240417"
+        ],
+        "P16": [
+          "D20240112",
+          "D20240815",
+          "D20240908",
+          "D20241002"
+        ],
+        "P19": [
+          "D20240205",
+          "D20240229",
+          "D20240324",
+          "D20240417",
+          "D20240511",
+          "D20240604",
+          "D20240628",
+          "D20240722",
+          "D20240815",
+          "D20240908",
+          "D20241002",
+          "D20241026",
+          "D20241119",
+          "D20241213",
+          "D20250106",
+          "D20250130",
+          "D20250223",
+          "D20250319"
+        ]
+      },
+      "orbit": null,
+      "sentinel_masks": {},
+      "temporal_field_order_chronological": [
+        "D20240112",
+        "D20240205",
+        "D20240229",
+        "D20240324",
+        "D20240417",
+        "D20240511",
+        "D20240604",
+        "D20240628",
+        "D20240722",
+        "D20240815",
+        "D20240908",
+        "D20241002",
+        "D20241026",
+        "D20241119",
+        "D20241213",
+        "D20250106",
+        "D20250130",
+        "D20250223",
+        "D20250319",
+        "D20250412"
+      ],
+      "temporal_field_order_physical": [
+        "D20240112",
+        "D20240229",
+        "D20240417",
+        "D20240604",
+        "D20240722",
+        "D20240908",
+        "D20241026",
+        "D20241213",
+        "D20250130",
+        "D20250319",
+        "D20240205",
+        "D20240324",
+        "D20240511",
+        "D20240628",
+        "D20240815",
+        "D20241002",
+        "D20241119",
+        "D20250106",
+        "D20250223",
+        "D20250412"
+      ],
+      "velocity_unit": null
+    }
+  },
+  "dates": {
+    "decimal_years_since_reference": [
+      0.0,
+      0.0657084189,
+      0.1314168378,
+      0.1971252567,
+      0.2628336756,
+      0.3285420945,
+      0.3942505133,
+      0.4599589322,
+      0.5256673511,
+      0.59137577,
+      0.6570841889,
+      0.7227926078,
+      0.7885010267,
+      0.8542094456,
+      0.9199178645,
+      0.9856262834,
+      1.0513347023,
+      1.1170431211,
+      1.18275154,
+      1.2484599589
+    ],
+    "field_names": [
+      "D20240112",
+      "D20240205",
+      "D20240229",
+      "D20240324",
+      "D20240417",
+      "D20240511",
+      "D20240604",
+      "D20240628",
+      "D20240722",
+      "D20240815",
+      "D20240908",
+      "D20241002",
+      "D20241026",
+      "D20241119",
+      "D20241213",
+      "D20250106",
+      "D20250130",
+      "D20250223",
+      "D20250319",
+      "D20250412"
+    ],
+    "iso_dates": [
+      "2024-01-12",
+      "2024-02-05",
+      "2024-02-29",
+      "2024-03-24",
+      "2024-04-17",
+      "2024-05-11",
+      "2024-06-04",
+      "2024-06-28",
+      "2024-07-22",
+      "2024-08-15",
+      "2024-09-08",
+      "2024-10-02",
+      "2024-10-26",
+      "2024-11-19",
+      "2024-12-13",
+      "2025-01-06",
+      "2025-01-30",
+      "2025-02-23",
+      "2025-03-19",
+      "2025-04-12"
+    ],
+    "reference_epoch": "2024-01-12"
+  },
+  "generator": "scripts/generate_synthetic_fixtures.py",
+  "geometry": {
+    "grid": {
+      "columns": 5,
+      "record_order": "row-major west-east south-north",
+      "rows": 4,
+      "spacing_m": 100.0
+    },
+    "origin": {
+      "easting": 300000.0,
+      "northing": 7400000.0
+    },
+    "points": [
+      {
+        "point_id": "P00",
+        "record_index": 0,
+        "x": 300000.0,
+        "y": 7400000.0
+      },
+      {
+        "point_id": "P01",
+        "record_index": 1,
+        "x": 300100.0,
+        "y": 7400000.0
+      },
+      {
+        "point_id": "P02",
+        "record_index": 2,
+        "x": 300200.0,
+        "y": 7400000.0
+      },
+      {
+        "point_id": "P03",
+        "record_index": 3,
+        "x": 300300.0,
+        "y": 7400000.0
+      },
+      {
+        "point_id": "P04",
+        "record_index": 4,
+        "x": 300400.0,
+        "y": 7400000.0
+      },
+      {
+        "point_id": "P05",
+        "record_index": 5,
+        "x": 300000.0,
+        "y": 7400100.0
+      },
+      {
+        "point_id": "P06",
+        "record_index": 6,
+        "x": 300100.0,
+        "y": 7400100.0
+      },
+      {
+        "point_id": "P07",
+        "record_index": 7,
+        "x": 300200.0,
+        "y": 7400100.0
+      },
+      {
+        "point_id": "P08",
+        "record_index": 8,
+        "x": 300300.0,
+        "y": 7400100.0
+      },
+      {
+        "point_id": "P09",
+        "record_index": 9,
+        "x": 300400.0,
+        "y": 7400100.0
+      },
+      {
+        "point_id": "P10",
+        "record_index": 10,
+        "x": 300000.0,
+        "y": 7400200.0
+      },
+      {
+        "point_id": "P11",
+        "record_index": 11,
+        "x": 300100.0,
+        "y": 7400200.0
+      },
+      {
+        "point_id": "P12",
+        "record_index": 12,
+        "x": 300200.0,
+        "y": 7400200.0
+      },
+      {
+        "point_id": "P13",
+        "record_index": 13,
+        "x": 300300.0,
+        "y": 7400200.0
+      },
+      {
+        "point_id": "P14",
+        "record_index": 14,
+        "x": 300400.0,
+        "y": 7400200.0
+      },
+      {
+        "point_id": "P15",
+        "record_index": 15,
+        "x": 300000.0,
+        "y": 7400300.0
+      },
+      {
+        "point_id": "P16",
+        "record_index": 16,
+        "x": 300100.0,
+        "y": 7400300.0
+      },
+      {
+        "point_id": "P17",
+        "record_index": 17,
+        "x": 300200.0,
+        "y": 7400300.0
+      },
+      {
+        "point_id": "P18",
+        "record_index": 18,
+        "x": 300300.0,
+        "y": 7400300.0
+      },
+      {
+        "point_id": "P19",
+        "record_index": 19,
+        "x": 300400.0,
+        "y": 7400300.0
+      }
+    ],
+    "type": "Point"
+  },
+  "los_geometry": {
+    "ascending_formula": "U * cos(35 deg) - E * sin(35 deg)",
+    "descending_formula": "U * cos(35 deg) + E * sin(35 deg)",
+    "incidence_angle_degrees": 35.0,
+    "inverse_e_formula": "(LOS_DESC - LOS_ASC) / (2 * sin(35 deg))",
+    "inverse_u_formula": "(LOS_ASC + LOS_DESC) / (2 * cos(35 deg))",
+    "north_south_displacement_mm": 0.0
+  },
+  "point_models": [
+    {
+      "acceleration_e_mm_year2": 0.0,
+      "acceleration_u_mm_year2": 0.0,
+      "jump_e_mm": 0.0,
+      "jump_u_mm": 0.0,
+      "point_id": "P00",
+      "scenario": "stable, noise-free",
+      "seasonal_e": {
+        "amplitude_mm": 0.0,
+        "phase_degrees": 0.0
+      },
+      "seasonal_u": {
+        "amplitude_mm": 0.0,
+        "phase_degrees": 0.0
+      },
+      "sigma_e_mm": 0.0,
+      "sigma_u_mm": 0.0,
+      "velocity_e_mm_year": 0.0,
+      "velocity_u_mm_year": 0.0
+    },
+    {
+      "acceleration_e_mm_year2": 0.0,
+      "acceleration_u_mm_year2": 0.0,
+      "jump_e_mm": 0.0,
+      "jump_u_mm": 0.0,
+      "point_id": "P01",
+      "scenario": "stable with controlled noise",
+      "seasonal_e": {
+        "amplitude_mm": 0.0,
+        "phase_degrees": 0.0
+      },
+      "seasonal_u": {
+        "amplitude_mm": 0.0,
+        "phase_degrees": 0.0
+      },
+      "sigma_e_mm": 0.8,
+      "sigma_u_mm": 0.8,
+      "velocity_e_mm_year": 0.0,
+      "velocity_u_mm_year": 0.0
+    },
+    {
+      "acceleration_e_mm_year2": 0.0,
+      "acceleration_u_mm_year2": 0.0,
+      "jump_e_mm": 0.0,
+      "jump_u_mm": 0.0,
+      "point_id": "P02",
+      "scenario": "linear subsidence",
+      "seasonal_e": {
+        "amplitude_mm": 0.0,
+        "phase_degrees": 0.0
+      },
+      "seasonal_u": {
+        "amplitude_mm": 0.0,
+        "phase_degrees": 0.0
+      },
+      "sigma_e_mm": 0.0,
+      "sigma_u_mm": 0.0,
+      "velocity_e_mm_year": 0.0,
+      "velocity_u_mm_year": -20
+    },
+    {
+      "acceleration_e_mm_year2": 0.0,
+      "acceleration_u_mm_year2": 0.0,
+      "jump_e_mm": 0.0,
+      "jump_u_mm": 0.0,
+      "point_id": "P03",
+      "scenario": "linear uplift",
+      "seasonal_e": {
+        "amplitude_mm": 0.0,
+        "phase_degrees": 0.0
+      },
+      "seasonal_u": {
+        "amplitude_mm": 0.0,
+        "phase_degrees": 0.0
+      },
+      "sigma_e_mm": 0.0,
+      "sigma_u_mm": 0.0,
+      "velocity_e_mm_year": 0.0,
+      "velocity_u_mm_year": 15
+    },
+    {
+      "acceleration_e_mm_year2": 0.0,
+      "acceleration_u_mm_year2": 0.0,
+      "jump_e_mm": 0.0,
+      "jump_u_mm": 0.0,
+      "point_id": "P04",
+      "scenario": "linear eastward motion",
+      "seasonal_e": {
+        "amplitude_mm": 0.0,
+        "phase_degrees": 0.0
+      },
+      "seasonal_u": {
+        "amplitude_mm": 0.0,
+        "phase_degrees": 0.0
+      },
+      "sigma_e_mm": 0.0,
+      "sigma_u_mm": 0.0,
+      "velocity_e_mm_year": 18,
+      "velocity_u_mm_year": 0.0
+    },
+    {
+      "acceleration_e_mm_year2": 0.0,
+      "acceleration_u_mm_year2": 0.0,
+      "jump_e_mm": 0.0,
+      "jump_u_mm": 0.0,
+      "point_id": "P05",
+      "scenario": "linear westward motion",
+      "seasonal_e": {
+        "amplitude_mm": 0.0,
+        "phase_degrees": 0.0
+      },
+      "seasonal_u": {
+        "amplitude_mm": 0.0,
+        "phase_degrees": 0.0
+      },
+      "sigma_e_mm": 0.0,
+      "sigma_u_mm": 0.0,
+      "velocity_e_mm_year": -18,
+      "velocity_u_mm_year": 0.0
+    },
+    {
+      "acceleration_e_mm_year2": 0.0,
+      "acceleration_u_mm_year2": 0.0,
+      "jump_e_mm": 0.0,
+      "jump_u_mm": 0.0,
+      "point_id": "P06",
+      "scenario": "subsidence plus eastward motion",
+      "seasonal_e": {
+        "amplitude_mm": 0.0,
+        "phase_degrees": 0.0
+      },
+      "seasonal_u": {
+        "amplitude_mm": 0.0,
+        "phase_degrees": 0.0
+      },
+      "sigma_e_mm": 0.0,
+      "sigma_u_mm": 0.0,
+      "velocity_e_mm_year": 12,
+      "velocity_u_mm_year": -25
+    },
+    {
+      "acceleration_e_mm_year2": 0.0,
+      "acceleration_u_mm_year2": 0.0,
+      "jump_e_mm": 0.0,
+      "jump_u_mm": 0.0,
+      "point_id": "P07",
+      "scenario": "uplift plus westward motion",
+      "seasonal_e": {
+        "amplitude_mm": 0.0,
+        "phase_degrees": 0.0
+      },
+      "seasonal_u": {
+        "amplitude_mm": 0.0,
+        "phase_degrees": 0.0
+      },
+      "sigma_e_mm": 0.0,
+      "sigma_u_mm": 0.0,
+      "velocity_e_mm_year": -14,
+      "velocity_u_mm_year": 10
+    },
+    {
+      "acceleration_e_mm_year2": 0.0,
+      "acceleration_u_mm_year2": 0.0,
+      "jump_e_mm": 0.0,
+      "jump_u_mm": 0.0,
+      "point_id": "P08",
+      "scenario": "vertical seasonal signal",
+      "seasonal_e": {
+        "amplitude_mm": 0.0,
+        "phase_degrees": 0.0
+      },
+      "seasonal_u": {
+        "amplitude_mm": 8,
+        "phase_degrees": 30
+      },
+      "sigma_e_mm": 0.0,
+      "sigma_u_mm": 0.0,
+      "velocity_e_mm_year": 0.0,
+      "velocity_u_mm_year": -3
+    },
+    {
+      "acceleration_e_mm_year2": 0.0,
+      "acceleration_u_mm_year2": 0.0,
+      "jump_e_mm": 0.0,
+      "jump_u_mm": 0.0,
+      "point_id": "P09",
+      "scenario": "east-west seasonal signal",
+      "seasonal_e": {
+        "amplitude_mm": 10,
+        "phase_degrees": -45
+      },
+      "seasonal_u": {
+        "amplitude_mm": 0.0,
+        "phase_degrees": 0.0
+      },
+      "sigma_e_mm": 0.0,
+      "sigma_u_mm": 0.0,
+      "velocity_e_mm_year": 2,
+      "velocity_u_mm_year": 0.0
+    },
+    {
+      "acceleration_e_mm_year2": 0.0,
+      "acceleration_u_mm_year2": 0.0,
+      "jump_e_mm": 0.0,
+      "jump_u_mm": -15,
+      "point_id": "P10",
+      "scenario": "vertical negative jump",
+      "seasonal_e": {
+        "amplitude_mm": 0.0,
+        "phase_degrees": 0.0
+      },
+      "seasonal_u": {
+        "amplitude_mm": 0.0,
+        "phase_degrees": 0.0
+      },
+      "sigma_e_mm": 0.0,
+      "sigma_u_mm": 0.0,
+      "velocity_e_mm_year": 0.0,
+      "velocity_u_mm_year": -5
+    },
+    {
+      "acceleration_e_mm_year2": 0.0,
+      "acceleration_u_mm_year2": 0.0,
+      "jump_e_mm": 20,
+      "jump_u_mm": 0.0,
+      "point_id": "P11",
+      "scenario": "east-west positive jump",
+      "seasonal_e": {
+        "amplitude_mm": 0.0,
+        "phase_degrees": 0.0
+      },
+      "seasonal_u": {
+        "amplitude_mm": 0.0,
+        "phase_degrees": 0.0
+      },
+      "sigma_e_mm": 0.0,
+      "sigma_u_mm": 0.0,
+      "velocity_e_mm_year": 4,
+      "velocity_u_mm_year": 0.0
+    },
+    {
+      "acceleration_e_mm_year2": 0.0,
+      "acceleration_u_mm_year2": -18,
+      "jump_e_mm": 0.0,
+      "jump_u_mm": 0.0,
+      "point_id": "P12",
+      "scenario": "accelerating subsidence",
+      "seasonal_e": {
+        "amplitude_mm": 0.0,
+        "phase_degrees": 0.0
+      },
+      "seasonal_u": {
+        "amplitude_mm": 0.0,
+        "phase_degrees": 0.0
+      },
+      "sigma_e_mm": 0.0,
+      "sigma_u_mm": 0.0,
+      "velocity_e_mm_year": 0.0,
+      "velocity_u_mm_year": -5
+    },
+    {
+      "acceleration_e_mm_year2": -16,
+      "acceleration_u_mm_year2": 0.0,
+      "jump_e_mm": 0.0,
+      "jump_u_mm": 0.0,
+      "point_id": "P13",
+      "scenario": "accelerating westward motion",
+      "seasonal_e": {
+        "amplitude_mm": 0.0,
+        "phase_degrees": 0.0
+      },
+      "seasonal_u": {
+        "amplitude_mm": 0.0,
+        "phase_degrees": 0.0
+      },
+      "sigma_e_mm": 0.0,
+      "sigma_u_mm": 0.0,
+      "velocity_e_mm_year": -4,
+      "velocity_u_mm_year": 0.0
+    },
+    {
+      "acceleration_e_mm_year2": 0.0,
+      "acceleration_u_mm_year2": 0.0,
+      "jump_e_mm": 0.0,
+      "jump_u_mm": 0.0,
+      "point_id": "P14",
+      "scenario": "mixed trend, seasonality, and noise",
+      "seasonal_e": {
+        "amplitude_mm": 3,
+        "phase_degrees": -30
+      },
+      "seasonal_u": {
+        "amplitude_mm": 4,
+        "phase_degrees": 45
+      },
+      "sigma_e_mm": 0.3,
+      "sigma_u_mm": 0.3,
+      "velocity_e_mm_year": 9,
+      "velocity_u_mm_year": -12
+    },
+    {
+      "acceleration_e_mm_year2": 0.0,
+      "acceleration_u_mm_year2": 0.0,
+      "jump_e_mm": 0.0,
+      "jump_u_mm": 0.0,
+      "point_id": "P15",
+      "scenario": "sentinel-coded gaps",
+      "seasonal_e": {
+        "amplitude_mm": 0.0,
+        "phase_degrees": 0.0
+      },
+      "seasonal_u": {
+        "amplitude_mm": 0.0,
+        "phase_degrees": 0.0
+      },
+      "sigma_e_mm": 0.2,
+      "sigma_u_mm": 0.3,
+      "velocity_e_mm_year": 0.0,
+      "velocity_u_mm_year": -8
+    },
+    {
+      "acceleration_e_mm_year2": 0.0,
+      "acceleration_u_mm_year2": 0.0,
+      "jump_e_mm": 0.0,
+      "jump_u_mm": 0.0,
+      "point_id": "P16",
+      "scenario": "DBF-null gaps",
+      "seasonal_e": {
+        "amplitude_mm": 0.0,
+        "phase_degrees": 0.0
+      },
+      "seasonal_u": {
+        "amplitude_mm": 0.0,
+        "phase_degrees": 0.0
+      },
+      "sigma_e_mm": 0.3,
+      "sigma_u_mm": 0.2,
+      "velocity_e_mm_year": -10,
+      "velocity_u_mm_year": 0.0
+    },
+    {
+      "acceleration_e_mm_year2": 0.0,
+      "acceleration_u_mm_year2": 0.0,
+      "jump_e_mm": 0.0,
+      "jump_u_mm": 0.0,
+      "point_id": "P17",
+      "scenario": "positive vertical outlier",
+      "seasonal_e": {
+        "amplitude_mm": 0.0,
+        "phase_degrees": 0.0
+      },
+      "seasonal_u": {
+        "amplitude_mm": 0.0,
+        "phase_degrees": 0.0
+      },
+      "sigma_e_mm": 0.35,
+      "sigma_u_mm": 0.35,
+      "velocity_e_mm_year": 5,
+      "velocity_u_mm_year": -10
+    },
+    {
+      "acceleration_e_mm_year2": 0.0,
+      "acceleration_u_mm_year2": 0.0,
+      "jump_e_mm": 0.0,
+      "jump_u_mm": 0.0,
+      "point_id": "P18",
+      "scenario": "negative east-west outlier",
+      "seasonal_e": {
+        "amplitude_mm": 0.0,
+        "phase_degrees": 0.0
+      },
+      "seasonal_u": {
+        "amplitude_mm": 0.0,
+        "phase_degrees": 0.0
+      },
+      "sigma_e_mm": 0.35,
+      "sigma_u_mm": 0.35,
+      "velocity_e_mm_year": -6,
+      "velocity_u_mm_year": 5
+    },
+    {
+      "acceleration_e_mm_year2": 0.0,
+      "acceleration_u_mm_year2": 0.0,
+      "jump_e_mm": 0.0,
+      "jump_u_mm": 0.0,
+      "point_id": "P19",
+      "scenario": "sparse observations",
+      "seasonal_e": {
+        "amplitude_mm": 0.0,
+        "phase_degrees": 0.0
+      },
+      "seasonal_u": {
+        "amplitude_mm": 0.0,
+        "phase_degrees": 0.0
+      },
+      "sigma_e_mm": 0.2,
+      "sigma_u_mm": 0.2,
+      "velocity_e_mm_year": 20,
+      "velocity_u_mm_year": -30
+    }
+  ],
+  "random_algorithm": "numpy.random.PCG64",
+  "random_seed": 20260626,
+  "reference_values": {
+    "cells": [
+      {
+        "date_field": "D20240112",
+        "e_mm": 0.0,
+        "east_west_stored_cm": 0.0,
+        "iso_date": "2024-01-12",
+        "los_ascending_mm": 0.0,
+        "los_descending_mm": 0.0,
+        "point_id": "P00",
+        "u_mm": 0.0
+      },
+      {
+        "date_field": "D20250412",
+        "e_mm": 0.0,
+        "east_west_stored_cm": 0.0,
+        "iso_date": "2025-04-12",
+        "los_ascending_mm": 0.0,
+        "los_descending_mm": 0.0,
+        "point_id": "P00",
+        "u_mm": 0.0
+      },
+      {
+        "date_field": "D20250412",
+        "e_mm": 0.0,
+        "east_west_stored_cm": 0.0,
+        "iso_date": "2025-04-12",
+        "los_ascending_mm": -20.454,
+        "los_descending_mm": -20.454,
+        "point_id": "P02",
+        "u_mm": -24.969
+      },
+      {
+        "date_field": "D20250412",
+        "e_mm": 22.472,
+        "east_west_stored_cm": 2.2472,
+        "iso_date": "2025-04-12",
+        "los_ascending_mm": -12.89,
+        "los_descending_mm": 12.89,
+        "point_id": "P04",
+        "u_mm": 0.0
+      },
+      {
+        "date_field": "D20250412",
+        "e_mm": 14.982,
+        "east_west_stored_cm": 1.4982,
+        "iso_date": "2025-04-12",
+        "los_ascending_mm": -34.16,
+        "los_descending_mm": -16.974,
+        "point_id": "P06",
+        "u_mm": -31.211
+      },
+      {
+        "date_field": "D20240417",
+        "e_mm": 0.0,
+        "east_west_stored_cm": 0.0,
+        "iso_date": "2024-04-17",
+        "los_ascending_mm": 1.47,
+        "los_descending_mm": 1.47,
+        "point_id": "P08",
+        "u_mm": 1.795
+      },
+      {
+        "date_field": "D20250412",
+        "e_mm": 0.0,
+        "east_west_stored_cm": 0.0,
+        "iso_date": "2025-04-12",
+        "los_ascending_mm": -0.638,
+        "los_descending_mm": -0.638,
+        "point_id": "P08",
+        "u_mm": -0.779
+      },
+      {
+        "date_field": "D20240908",
+        "e_mm": 0.0,
+        "east_west_stored_cm": 0.0,
+        "iso_date": "2024-09-08",
+        "los_ascending_mm": -2.691,
+        "los_descending_mm": -2.691,
+        "point_id": "P10",
+        "u_mm": -3.285
+      },
+      {
+        "date_field": "D20241002",
+        "e_mm": 0.0,
+        "east_west_stored_cm": 0.0,
+        "iso_date": "2024-10-02",
+        "los_ascending_mm": -15.248,
+        "los_descending_mm": -15.248,
+        "point_id": "P10",
+        "u_mm": -18.614
+      },
+      {
+        "date_field": "D20240908",
+        "e_mm": 2.628,
+        "east_west_stored_cm": 0.2628,
+        "iso_date": "2024-09-08",
+        "los_ascending_mm": -1.508,
+        "los_descending_mm": 1.508,
+        "point_id": "P11",
+        "u_mm": 0.0
+      },
+      {
+        "date_field": "D20241002",
+        "e_mm": 22.891,
+        "east_west_stored_cm": 2.2891,
+        "iso_date": "2024-10-02",
+        "los_ascending_mm": -13.13,
+        "los_descending_mm": 13.13,
+        "point_id": "P11",
+        "u_mm": 0.0
+      },
+      {
+        "date_field": "D20250412",
+        "e_mm": 0.0,
+        "east_west_stored_cm": 0.0,
+        "iso_date": "2025-04-12",
+        "los_ascending_mm": -16.604,
+        "los_descending_mm": -16.604,
+        "point_id": "P12",
+        "u_mm": -20.27
+      },
+      {
+        "date_field": "D20250412",
+        "e_mm": 16.391,
+        "east_west_stored_cm": 1.6391,
+        "iso_date": "2025-04-12",
+        "los_ascending_mm": -22.128,
+        "los_descending_mm": -3.325,
+        "point_id": "P14",
+        "u_mm": -15.536
+      },
+      {
+        "date_field": "D20241119",
+        "e_mm": 4.009,
+        "east_west_stored_cm": 0.4009,
+        "iso_date": "2024-11-19",
+        "los_ascending_mm": 19.83,
+        "los_descending_mm": 24.429,
+        "point_id": "P17",
+        "u_mm": 27.015
+      },
+      {
+        "date_field": "D20250130",
+        "e_mm": -47.291,
+        "east_west_stored_cm": -4.7291,
+        "iso_date": "2025-01-30",
+        "los_ascending_mm": 31.59,
+        "los_descending_mm": -22.66,
+        "point_id": "P18",
+        "u_mm": 5.45
+      },
+      {
+        "date_field": "D20250412",
+        "e_mm": 24.796,
+        "east_west_stored_cm": 2.4796,
+        "iso_date": "2025-04-12",
+        "los_ascending_mm": -44.829,
+        "los_descending_mm": -16.384,
+        "point_id": "P19",
+        "u_mm": -37.364
+      }
+    ],
+    "source_velocity_attributes": [
+      {
+        "point_id": "P00",
+        "uncertainty_east_west_cm_year": 0.025,
+        "uncertainty_los_mm_year": 0.25,
+        "velocity_e_mm_year": 0.0,
+        "velocity_east_west_cm_year": 0.0,
+        "velocity_los_ascending_mm_year": 0.0,
+        "velocity_los_descending_mm_year": 0.0,
+        "velocity_u_mm_year": 0.0
+      },
+      {
+        "point_id": "P02",
+        "uncertainty_east_west_cm_year": 0.025,
+        "uncertainty_los_mm_year": 0.25,
+        "velocity_e_mm_year": 0.0,
+        "velocity_east_west_cm_year": 0.0,
+        "velocity_los_ascending_mm_year": -16.383,
+        "velocity_los_descending_mm_year": -16.383,
+        "velocity_u_mm_year": -20
+      },
+      {
+        "point_id": "P04",
+        "uncertainty_east_west_cm_year": 0.025,
+        "uncertainty_los_mm_year": 0.25,
+        "velocity_e_mm_year": 18,
+        "velocity_east_west_cm_year": 1.8,
+        "velocity_los_ascending_mm_year": -10.324,
+        "velocity_los_descending_mm_year": 10.324,
+        "velocity_u_mm_year": 0.0
+      },
+      {
+        "point_id": "P06",
+        "uncertainty_east_west_cm_year": 0.025,
+        "uncertainty_los_mm_year": 0.25,
+        "velocity_e_mm_year": 12,
+        "velocity_east_west_cm_year": 1.2,
+        "velocity_los_ascending_mm_year": -27.362,
+        "velocity_los_descending_mm_year": -13.596,
+        "velocity_u_mm_year": -25
+      },
+      {
+        "point_id": "P10",
+        "uncertainty_east_west_cm_year": 0.025,
+        "uncertainty_los_mm_year": 0.25,
+        "velocity_e_mm_year": 0.0,
+        "velocity_east_west_cm_year": 0.0,
+        "velocity_los_ascending_mm_year": -4.096,
+        "velocity_los_descending_mm_year": -4.096,
+        "velocity_u_mm_year": -5
+      },
+      {
+        "point_id": "P11",
+        "uncertainty_east_west_cm_year": 0.025,
+        "uncertainty_los_mm_year": 0.25,
+        "velocity_e_mm_year": 4,
+        "velocity_east_west_cm_year": 0.4,
+        "velocity_los_ascending_mm_year": -2.294,
+        "velocity_los_descending_mm_year": 2.294,
+        "velocity_u_mm_year": 0.0
+      },
+      {
+        "point_id": "P12",
+        "uncertainty_east_west_cm_year": 0.025,
+        "uncertainty_los_mm_year": 0.25,
+        "velocity_e_mm_year": 0.0,
+        "velocity_east_west_cm_year": 0.0,
+        "velocity_los_ascending_mm_year": -4.096,
+        "velocity_los_descending_mm_year": -4.096,
+        "velocity_u_mm_year": -5
+      },
+      {
+        "point_id": "P14",
+        "uncertainty_east_west_cm_year": 0.04,
+        "uncertainty_los_mm_year": 0.4,
+        "velocity_e_mm_year": 9,
+        "velocity_east_west_cm_year": 0.9,
+        "velocity_los_ascending_mm_year": -14.992,
+        "velocity_los_descending_mm_year": -4.668,
+        "velocity_u_mm_year": -12
+      },
+      {
+        "point_id": "P19",
+        "uncertainty_east_west_cm_year": 0.035,
+        "uncertainty_los_mm_year": 0.35,
+        "velocity_e_mm_year": 20,
+        "velocity_east_west_cm_year": 2.0,
+        "velocity_los_ascending_mm_year": -36.046,
+        "velocity_los_descending_mm_year": -13.103,
+        "velocity_u_mm_year": -30
+      }
+    ]
+  },
+  "schema_version": "1.0"
+}
