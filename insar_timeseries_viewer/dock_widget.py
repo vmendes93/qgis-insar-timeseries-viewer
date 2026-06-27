@@ -57,9 +57,9 @@ from .insar_timeseries_reader import (
     LayerSchema,
     LayerValidationError,
     TimeSeriesData,
-    inspect_layer,
     read_feature,
 )
+from .layer_schema_service import SavedLayerMappingError, resolve_layer_schema
 from .orbit_direction import (
     ORBIT_ASCENDING,
     ORBIT_AUTO,
@@ -1009,8 +1009,8 @@ class TimeSeriesDockWidget(QDockWidget):
                 if not self._is_point_vector_layer(layer):
                     continue
                 try:
-                    schema = inspect_layer(layer)
-                except LayerValidationError:
+                    schema = resolve_layer_schema(layer).schema
+                except (LayerValidationError, SavedLayerMappingError):
                     continue
                 override = load_layer_orbit_override(self.project, layer.id())
                 label = component_display_label(schema, layer, override)
@@ -1097,8 +1097,8 @@ class TimeSeriesDockWidget(QDockWidget):
             return
 
         try:
-            schema = inspect_layer(layer)
-        except LayerValidationError as exc:
+            schema = resolve_layer_schema(layer).schema
+        except (LayerValidationError, SavedLayerMappingError) as exc:
             self._show_layer_error(str(exc))
             return
 
