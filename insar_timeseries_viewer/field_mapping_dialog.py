@@ -151,14 +151,35 @@ class FieldMappingDialog(QDialog):
         if not detected_fields:
             return tr("Nenhum campo temporal DYYYYMMDD detectado.")
 
-        fields = ", ".join(
-            f"{field_name} ({formatted_date})"
-            for field_name, formatted_date in detected_fields
-        )
+        first_field, first_date = detected_fields[0]
+        last_field, last_date = detected_fields[-1]
+        first_names = ", ".join(field_name for field_name, _date in detected_fields[:3])
+        last_names = ", ".join(field_name for field_name, _date in detected_fields[-3:])
+
+        if len(detected_fields) <= 6:
+            listed_names = ", ".join(field_name for field_name, _date in detected_fields)
+            return tr(
+                "{count} campos DYYYYMMDD detectados. "
+                "Cobertura: {first_date} a {last_date}. "
+                "Campos: {fields}.",
+                count=len(detected_fields),
+                first_date=first_date,
+                last_date=last_date,
+                fields=listed_names,
+            )
+
         return tr(
-            "{count} campos DYYYYMMDD detectados: {fields}",
+            "{count} campos DYYYYMMDD detectados. "
+            "Cobertura: {first_date} a {last_date}. "
+            "Primeiro campo: {first_field}; último campo: {last_field}. "
+            "Primeiros: {first_names}. Últimos: {last_names}.",
             count=len(detected_fields),
-            fields=fields,
+            first_date=first_date,
+            last_date=last_date,
+            first_field=first_field,
+            last_field=last_field,
+            first_names=first_names,
+            last_names=last_names,
         )
 
     def _detected_temporal_fields(self) -> tuple[tuple[str, str], ...]:
