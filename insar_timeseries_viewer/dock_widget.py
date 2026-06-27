@@ -1950,7 +1950,6 @@ class TimeSeriesDockWidget(QDockWidget):
         self._has_displayed_area = False
         self._point_spatial_index = None
 
-
     # ------------------------------------------------------- point navigation
     def _update_selection_action_states(self) -> None:
         if not hasattr(self, "zoom_feature_button"):
