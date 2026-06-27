@@ -15,7 +15,9 @@ from qgis.core import (
     QgsCsException,
     QgsFeatureRequest,
     QgsGeometry,
+    QgsPointXY,
     QgsProject,
+    QgsRectangle,
     QgsSpatialIndex,
     QgsVectorLayer,
     QgsWkbTypes,
@@ -37,6 +39,39 @@ VALID_SELECTION_OPERATIONS = {
 
 class SpatialSelectionError(ValueError):
     """Erro de validação ou execução da seleção espacial."""
+
+
+class PointClickTool(QgsMapTool):
+    """Map tool that emits the clicked map point in the canvas CRS."""
+
+    pointClicked = pyqtSignal(object)
+    canceled = pyqtSignal()
+
+    def __init__(self, canvas):
+        super().__init__(canvas)
+        self.canvas = canvas
+        self.setCursor(QCursor(Qt.CrossCursor))
+
+    def activate(self) -> None:
+        super().activate()
+        self.setCursor(QCursor(Qt.CrossCursor))
+
+    def canvasReleaseEvent(self, event) -> None:
+        if event.button() == Qt.LeftButton:
+            self.pointClicked.emit(event.mapPoint())
+            return
+        if event.button() == Qt.RightButton:
+            self.cancel()
+
+    def keyPressEvent(self, event) -> None:
+        if event.key() == Qt.Key_Escape:
+            self.cancel()
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
+    def cancel(self) -> None:
+        self.canceled.emit()
 
 
 class PolygonCaptureTool(QgsMapTool):
@@ -292,3 +327,124 @@ def resulting_selection_ids(
     else:
         result = current - found
     return sorted(result)
+
+
+def nearest_point_id_at_canvas_point(
+    layer: QgsVectorLayer,
+    map_point,
+    canvas,
+    *,
+    project: Optional[QgsProject] = None,
+    spatial_index: Optional[QgsSpatialIndex] = None,
+    tolerance_pixels: int = 10,
+) -> Optional[int]:
+    """Return the nearest point feature ID around a canvas click."""
+    if layer is None or not layer.isValid():
+        raise SpatialSelectionError(tr("A camada de pontos não está disponível."))
+    if layer.geometryType() != QgsWkbTypes.PointGeometry:
+        raise SpatialSelectionError(tr("A camada de destino não é pontual."))
+
+    layer_point = _canvas_point_to_layer_point(
+        map_point,
+        canvas,
+        layer,
+        project=project,
+    )
+    search_rect = _click_search_rect_in_layer_crs(
+        map_point,
+        canvas,
+        layer,
+        project=project,
+        tolerance_pixels=tolerance_pixels,
+    )
+
+    if spatial_index is not None:
+        candidate_ids = spatial_index.intersects(search_rect)
+        request = QgsFeatureRequest().setFilterFids(candidate_ids).setNoAttributes()
+    else:
+        request = QgsFeatureRequest().setFilterRect(search_rect).setNoAttributes()
+
+    reference = QgsGeometry.fromPointXY(layer_point)
+    best_id = None
+    best_distance = None
+    for feature in layer.getFeatures(request):
+        if not feature.hasGeometry():
+            continue
+        geometry = feature.geometry()
+        if geometry is None or geometry.isEmpty():
+            continue
+        if not search_rect.intersects(geometry.boundingBox()):
+            continue
+        distance = geometry.distance(reference)
+        if best_distance is None or distance < best_distance:
+            best_id = int(feature.id())
+            best_distance = distance
+
+    return best_id
+
+
+def _click_search_rect_in_layer_crs(
+    map_point,
+    canvas,
+    layer: QgsVectorLayer,
+    *,
+    project: Optional[QgsProject],
+    tolerance_pixels: int,
+) -> QgsRectangle:
+    tolerance = max(float(tolerance_pixels), 1.0) * float(canvas.mapUnitsPerPixel())
+    x_value = float(map_point.x())
+    y_value = float(map_point.y())
+    canvas_points = [
+        QgsPointXY(x_value - tolerance, y_value - tolerance),
+        QgsPointXY(x_value - tolerance, y_value + tolerance),
+        QgsPointXY(x_value + tolerance, y_value - tolerance),
+        QgsPointXY(x_value + tolerance, y_value + tolerance),
+    ]
+    layer_points = [
+        _canvas_point_to_layer_point(point, canvas, layer, project=project)
+        for point in canvas_points
+    ]
+
+    x_values = [point.x() for point in layer_points]
+    y_values = [point.y() for point in layer_points]
+    return QgsRectangle(
+        min(x_values),
+        min(y_values),
+        max(x_values),
+        max(y_values),
+    )
+
+
+def _canvas_point_to_layer_point(
+    map_point,
+    canvas,
+    layer: QgsVectorLayer,
+    *,
+    project: Optional[QgsProject],
+) -> QgsPointXY:
+    point = QgsPointXY(map_point)
+    source_crs = canvas.mapSettings().destinationCrs()
+    target_crs = layer.crs()
+
+    if source_crs is None or not source_crs.isValid():
+        raise SpatialSelectionError(tr("O SRC do mapa não é válido."))
+    if target_crs is None or not target_crs.isValid():
+        raise SpatialSelectionError(tr("O SRC da camada de pontos não é válido."))
+
+    if source_crs == target_crs:
+        return point
+
+    try:
+        transform = QgsCoordinateTransform(
+            source_crs,
+            target_crs,
+            project or QgsProject.instance(),
+        )
+        return transform.transform(point)
+    except (QgsCsException, RuntimeError, ValueError) as exc:
+        raise SpatialSelectionError(
+            tr(
+                "Não foi possível reprojetar o clique para a camada de pontos: {error}",
+                error=exc,
+            )
+        ) from exc

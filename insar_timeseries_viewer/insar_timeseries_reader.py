@@ -3,9 +3,9 @@
 
 """Leitura e validação de séries temporais InSAR em camadas vetoriais do QGIS.
 
-
-O módulo não relaciona camadas entre si. O campo CODE, quando existente, é
-usado somente como rótulo da feição lida.
+O módulo não relaciona camadas entre si. Campos identificadores e metadados
+como velocidade, incerteza, componente, órbita, unidade e sentinelas são
+tratados como opcionais sempre que a estrutura temporal mínima for válida.
 """
 
 from __future__ import annotations
@@ -25,6 +25,41 @@ DATE_FIELD_PATTERN = re.compile(r"^D(?P<date>\d{8})$")
 POSSIBLE_DATE_FIELD_PATTERN = re.compile(r"^D\d")
 DEFAULT_MISSING_SENTINELS: Tuple[float, ...] = (999.0,)
 
+IDENTIFIER_FIELD_ALIASES: Tuple[str, ...] = (
+    "CODE",
+    "POINT_ID",
+    "POINTID",
+    "STATION",
+    "ID",
+    "PS_ID",
+    "TARGET_ID",
+)
+COMPONENT_FIELD_ALIASES: Tuple[str, ...] = (
+    "COMPONENT",
+    "COMP",
+    "AXIS",
+    "DIRECTION",
+)
+ORBIT_FIELD_ALIASES: Tuple[str, ...] = (
+    "ORBIT",
+    "PASS",
+    "ORBIT_DIR",
+    "ORBIT_DIRECTION",
+)
+DISPLACEMENT_UNIT_FIELD_ALIASES: Tuple[str, ...] = (
+    "UNIT",
+    "UOM",
+    "UNITS",
+    "DISP_UNIT",
+)
+SENTINEL_FIELD_ALIASES: Tuple[str, ...] = (
+    "NODATA",
+    "NO_DATA",
+    "NULL_VALUE",
+    "MISSING",
+    "MISSING_VALUE",
+)
+
 
 class InsarReaderError(Exception):
     """Erro-base do leitor de séries temporais InSAR."""
@@ -42,8 +77,10 @@ class FeatureReadError(InsarReaderError):
 class ComponentDefinition:
     key: str
     label: str
-    velocity_field: str
-    velocity_std_field: str
+    velocity_field_aliases: Tuple[str, ...]
+    velocity_std_field_aliases: Tuple[str, ...]
+    value_aliases: Tuple[str, ...]
+    name_aliases: Tuple[str, ...]
 
 
 # Os nomes são avaliados sem distinguir maiúsculas de minúsculas, mas o nome
@@ -52,21 +89,82 @@ COMPONENT_DEFINITIONS: Tuple[ComponentDefinition, ...] = (
     ComponentDefinition(
         key="vertical",
         label="VERT",
-        velocity_field="VEL_V",
-        velocity_std_field="V_STDEV_V",
+        velocity_field_aliases=(
+            "VEL_V",
+            "V_VEL",
+            "VEL_VERT",
+            "VERT_VEL",
+            "VERT_RATE",
+            "RATE_V",
+            "RATE_VERT",
+            "UP_RATE",
+        ),
+        velocity_std_field_aliases=(
+            "V_STDEV_V",
+            "STD_VEL_V",
+            "VEL_V_STD",
+            "VERT_ERR",
+            "VERT_UNC",
+            "RATE_ERR_V",
+        ),
+        value_aliases=("VERT", "VERTICAL", "V", "UP", "Z", "U"),
+        name_aliases=("VERT", "VERTICAL", "UP", "Z"),
     ),
     ComponentDefinition(
         key="east_west",
         label="EW",
-        velocity_field="VEL_E",
-        velocity_std_field="V_STDEV_E",
+        velocity_field_aliases=(
+            "VEL_E",
+            "VEL_EW",
+            "EW_VEL",
+            "EAST_VEL",
+            "MOTION",
+            "RATE_E",
+            "RATE_EW",
+            "EAST_RATE",
+        ),
+        velocity_std_field_aliases=(
+            "V_STDEV_E",
+            "STD_VEL_E",
+            "VEL_E_STD",
+            "EW_ERR",
+            "EW_UNC",
+            "RATE_ERR_E",
+            "UNCERT",
+        ),
+        value_aliases=("EW", "E-W", "EAST_WEST", "EAST-WEST", "EAST WEST", "HORIZONTAL_EW"),
+        name_aliases=("EW", "E-W", "EAST_WEST", "EAST-WEST", "EAST WEST"),
     ),
     ComponentDefinition(
         key="los",
         label="LOS",
-        velocity_field="VEL",
-        velocity_std_field="V_STDEV",
+        velocity_field_aliases=(
+            "VEL",
+            "VEL_LOS",
+            "LOS_VEL",
+            "VELOCITY",
+            "RATE",
+            "RATE_MM_Y",
+        ),
+        velocity_std_field_aliases=(
+            "V_STDEV",
+            "VEL_STD",
+            "STD_VEL",
+            "LOS_ERR",
+            "LOS_UNC",
+            "RATE_ERR",
+        ),
+        value_aliases=("LOS", "LINE_OF_SIGHT", "LINE-OF-SIGHT", "LINE OF SIGHT"),
+        name_aliases=("LOS", "LINE_OF_SIGHT", "LINE-OF-SIGHT", "LINE OF SIGHT"),
     ),
+)
+UNKNOWN_COMPONENT = ComponentDefinition(
+    key="unknown",
+    label="TS",
+    velocity_field_aliases=(),
+    velocity_std_field_aliases=(),
+    value_aliases=(),
+    name_aliases=(),
 )
 
 
@@ -74,6 +172,26 @@ COMPONENT_DEFINITIONS: Tuple[ComponentDefinition, ...] = (
 class DateField:
     name: str
     acquisition_date: date
+
+
+@dataclass(frozen=True)
+class LayerFieldMapping:
+    """Mapeamento manual opcional de campos de uma camada.
+
+    Campos deixados como ``None`` continuam sujeitos à detecção automática por
+    aliases. ``date_fields`` deve ser informado quando os campos temporais não
+    seguem a convenção DYYYYMMDD.
+    """
+
+    identifier_field: Optional[str] = None
+    component_key: Optional[str] = None
+    component_field: Optional[str] = None
+    velocity_field: Optional[str] = None
+    velocity_std_field: Optional[str] = None
+    date_fields: Optional[Sequence[DateField]] = None
+    orbit_field: Optional[str] = None
+    displacement_unit_field: Optional[str] = None
+    sentinel_field: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -85,11 +203,15 @@ class LayerSchema:
     component_key: str
     component_label: str
     identifier_field: Optional[str]
-    velocity_field: str
-    velocity_std_field: str
+    velocity_field: Optional[str]
+    velocity_std_field: Optional[str]
     date_fields: Tuple[DateField, ...]
     general_fields: Tuple[str, ...]
     warnings: Tuple[str, ...]
+    component_field: Optional[str] = None
+    orbit_field: Optional[str] = None
+    displacement_unit_field: Optional[str] = None
+    sentinel_field: Optional[str] = None
 
     @property
     def acquisition_count(self) -> int:
@@ -149,11 +271,16 @@ class LayerScanResult:
     truncated: bool
 
 
-def inspect_layer(layer: QgsVectorLayer) -> LayerSchema:
+def inspect_layer(
+    layer: QgsVectorLayer,
+    field_mapping: Optional[LayerFieldMapping] = None,
+) -> LayerSchema:
     """Valida uma camada e identifica seu esquema de série temporal.
 
-    A função apenas inspeciona a estrutura dos campos. Ela não percorre todas
-    as feições e não associa a camada a nenhum outro produto.
+    A função identifica campos temporais DYYYYMMDD e tenta detectar metadados
+    comuns por aliases. Campos não detectáveis podem ser informados por
+    ``field_mapping``. Apenas geometria de ponto e ao menos dois campos
+    temporais válidos são obrigatórios.
     """
 
     _validate_vector_point_layer(layer)
@@ -163,64 +290,87 @@ def inspect_layer(layer: QgsVectorLayer) -> LayerSchema:
         raise LayerValidationError(tr("A camada não possui campos de atributos."))
 
     normalized_fields = _build_normalized_field_map(field_names)
-    component = _detect_component(normalized_fields)
-
-    actual_velocity_field = normalized_fields[component.velocity_field.casefold()]
-    actual_velocity_std_field = normalized_fields[
-        component.velocity_std_field.casefold()
-    ]
-
     warnings = []
-    parsed_date_fields = []
-    rejected_date_like_fields = []
+    field_mapping = field_mapping or LayerFieldMapping()
 
-    for field_name in field_names:
-        match = DATE_FIELD_PATTERN.fullmatch(field_name)
-        if not match:
-            if POSSIBLE_DATE_FIELD_PATTERN.match(field_name):
-                rejected_date_like_fields.append(field_name)
-            continue
-
-        raw_date = match.group("date")
-        try:
-            acquisition_date = datetime.strptime(raw_date, "%Y%m%d").date()
-        except ValueError:
-            rejected_date_like_fields.append(field_name)
-            continue
-
-        parsed_date_fields.append(DateField(field_name, acquisition_date))
-
-    parsed_date_fields.sort(key=lambda item: item.acquisition_date)
-
-    if len(parsed_date_fields) < 2:
-        raise LayerValidationError(
-            tr("A camada precisa ter pelo menos dois campos temporais válidos no formato DYYYYMMDD.")
+    if field_mapping.date_fields is not None:
+        parsed_date_fields = list(
+            _validate_manual_date_fields(field_mapping.date_fields, normalized_fields)
         )
+    else:
+        parsed_date_fields, rejected_date_like_fields = _detect_date_fields(field_names)
 
-    duplicate_dates = _find_duplicate_dates(parsed_date_fields)
-    if duplicate_dates:
-        formatted = ", ".join(d.strftime("%Y-%m-%d") for d in duplicate_dates)
-        raise LayerValidationError(
-            tr("Foram encontradas datas de aquisição duplicadas: {dates}", dates=formatted)
-        )
+        if rejected_date_like_fields:
+            warnings.append(
+                tr("Campos parecidos com datas foram ignorados por não seguirem uma data DYYYYMMDD válida: {fields}", fields=", ".join(rejected_date_like_fields))
+            )
 
-    if rejected_date_like_fields:
+    component_field = _mapped_field(
+        normalized_fields,
+        field_mapping.component_field,
+        COMPONENT_FIELD_ALIASES,
+        "component_field",
+    )
+    orbit_field = _mapped_field(
+        normalized_fields,
+        field_mapping.orbit_field,
+        ORBIT_FIELD_ALIASES,
+        "orbit_field",
+    )
+    displacement_unit_field = _mapped_field(
+        normalized_fields,
+        field_mapping.displacement_unit_field,
+        DISPLACEMENT_UNIT_FIELD_ALIASES,
+        "displacement_unit_field",
+    )
+    sentinel_field = _mapped_field(
+        normalized_fields,
+        field_mapping.sentinel_field,
+        SENTINEL_FIELD_ALIASES,
+        "sentinel_field",
+    )
+
+    if field_mapping.component_key is not None:
+        component = _component_definition_from_key(field_mapping.component_key)
+    else:
+        component = _detect_component(layer, normalized_fields, component_field)
+
+    actual_velocity_field = _mapped_field(
+        normalized_fields,
+        field_mapping.velocity_field,
+        component.velocity_field_aliases,
+        "velocity_field",
+    )
+    actual_velocity_std_field = _mapped_field(
+        normalized_fields,
+        field_mapping.velocity_std_field,
+        component.velocity_std_field_aliases,
+        "velocity_std_field",
+    )
+
+    if component.key == "unknown":
         warnings.append(
-            tr("Campos parecidos com datas foram ignorados por não seguirem uma data DYYYYMMDD válida: {fields}", fields=", ".join(rejected_date_like_fields))
+            tr("A componente InSAR não pôde ser identificada automaticamente; a série será tratada como genérica.")
+        )
+    if actual_velocity_field is None:
+        warnings.append(
+            tr("Nenhum campo de velocidade foi identificado automaticamente; a velocidade será deixada vazia.")
+        )
+    if actual_velocity_std_field is None:
+        warnings.append(
+            tr("Nenhum campo de incerteza da velocidade foi identificado automaticamente; a incerteza será deixada vazia.")
         )
 
-    identifier_field = normalized_fields.get("code")
+    identifier_field = _mapped_field(
+        normalized_fields,
+        field_mapping.identifier_field,
+        IDENTIFIER_FIELD_ALIASES,
+        "identifier_field",
+    )
     if identifier_field is None:
-        display_field = layer.displayField()
-        if display_field and display_field.casefold() in normalized_fields:
-            identifier_field = normalized_fields[display_field.casefold()]
-            warnings.append(
-                tr("O campo CODE não foi encontrado; o campo de exibição da camada será usado apenas como rótulo: {field}.", field=identifier_field)
-            )
-        else:
-            warnings.append(
-                tr("Nenhum campo CODE ou campo de exibição utilizável foi encontrado; o ID interno da feição será usado como rótulo.")
-            )
+        warnings.append(
+            tr("Nenhum campo identificador foi encontrado; o ID interno da feição será usado como rótulo.")
+        )
 
     temporal_names = {item.name for item in parsed_date_fields}
     general_fields = tuple(name for name in field_names if name not in temporal_names)
@@ -236,6 +386,10 @@ def inspect_layer(layer: QgsVectorLayer) -> LayerSchema:
         date_fields=tuple(parsed_date_fields),
         general_fields=general_fields,
         warnings=tuple(warnings),
+        component_field=component_field,
+        orbit_field=orbit_field,
+        displacement_unit_field=displacement_unit_field,
+        sentinel_field=sentinel_field,
     )
 
 
@@ -260,14 +414,19 @@ def read_feature(
     schema = schema or inspect_layer(layer)
     _validate_schema_layer(schema, layer)
 
-    sentinel_values = _normalize_sentinels(missing_sentinels)
+    sentinel_values = _sentinels_for_feature(feature, schema, missing_sentinels)
 
-    velocity, _ = _coerce_numeric(
-        _feature_value(feature, schema.velocity_field), sentinel_values
-    )
-    velocity_std, _ = _coerce_numeric(
-        _feature_value(feature, schema.velocity_std_field), sentinel_values
-    )
+    velocity = None
+    if schema.velocity_field is not None:
+        velocity, _ = _coerce_numeric(
+            _feature_value(feature, schema.velocity_field), sentinel_values
+        )
+
+    velocity_std = None
+    if schema.velocity_std_field is not None:
+        velocity_std, _ = _coerce_numeric(
+            _feature_value(feature, schema.velocity_std_field), sentinel_values
+        )
 
     dates = []
     values = []
@@ -336,8 +495,6 @@ def scan_layer(
     if max_features is not None and max_features <= 0:
         raise ValueError(tr("max_features deve ser maior que zero ou None."))
 
-    sentinel_values = _normalize_sentinels(missing_sentinels)
-
     scanned_feature_count = 0
     features_with_valid_series = 0
     features_without_valid_series = 0
@@ -356,6 +513,7 @@ def scan_layer(
 
         scanned_feature_count += 1
         feature_has_valid_value = False
+        sentinel_values = _sentinels_for_feature(feature, schema, missing_sentinels)
 
         for date_field in schema.date_fields:
             total_observations += 1
@@ -427,33 +585,212 @@ def _build_normalized_field_map(field_names: Iterable[str]) -> dict[str, str]:
     return normalized
 
 
-def _detect_component(normalized_fields: dict[str, str]) -> ComponentDefinition:
-    matches = []
+def _find_field(normalized_fields: dict[str, str], aliases: Sequence[str]) -> Optional[str]:
+    for alias in aliases:
+        field_name = normalized_fields.get(alias.casefold())
+        if field_name is not None:
+            return field_name
+    return None
+
+
+def _mapped_field(
+    normalized_fields: dict[str, str],
+    manual_field_name: Optional[str],
+    aliases: Sequence[str],
+    mapping_name: str,
+) -> Optional[str]:
+    if manual_field_name is None:
+        return _find_field(normalized_fields, aliases)
+
+    return _field_by_name(normalized_fields, manual_field_name, mapping_name)
+
+
+def _field_by_name(
+    normalized_fields: dict[str, str],
+    field_name: str,
+    mapping_name: str,
+) -> str:
+    actual_field = normalized_fields.get(field_name.casefold())
+    if actual_field is None:
+        raise LayerValidationError(
+            tr("O campo informado em {mapping} não existe na camada: {field}.", mapping=mapping_name, field=field_name)
+        )
+    return actual_field
+
+
+def _detect_date_fields(field_names: Sequence[str]) -> Tuple[Tuple[DateField, ...], Tuple[str, ...]]:
+    parsed_date_fields = []
+    rejected_date_like_fields = []
+
+    for field_name in field_names:
+        match = DATE_FIELD_PATTERN.fullmatch(field_name)
+        if not match:
+            if POSSIBLE_DATE_FIELD_PATTERN.match(field_name):
+                rejected_date_like_fields.append(field_name)
+            continue
+
+        raw_date = match.group("date")
+        try:
+            acquisition_date = datetime.strptime(raw_date, "%Y%m%d").date()
+        except ValueError:
+            rejected_date_like_fields.append(field_name)
+            continue
+
+        parsed_date_fields.append(DateField(field_name, acquisition_date))
+
+    return (
+        _validate_date_field_sequence(parsed_date_fields),
+        tuple(rejected_date_like_fields),
+    )
+
+
+def _validate_manual_date_fields(
+    date_fields: Sequence[DateField],
+    normalized_fields: dict[str, str],
+) -> Tuple[DateField, ...]:
+    mapped_date_fields = []
+
+    for item in date_fields:
+        if not isinstance(item, DateField):
+            raise LayerValidationError(
+                tr("date_fields deve conter objetos DateField no mapeamento manual.")
+            )
+
+        actual_field = _field_by_name(normalized_fields, item.name, "date_fields")
+        mapped_date_fields.append(DateField(actual_field, item.acquisition_date))
+
+    return _validate_date_field_sequence(mapped_date_fields)
+
+
+def _validate_date_field_sequence(date_fields: Sequence[DateField]) -> Tuple[DateField, ...]:
+    parsed_date_fields = sorted(date_fields, key=lambda item: item.acquisition_date)
+
+    if len(parsed_date_fields) < 2:
+        raise LayerValidationError(
+            tr("A camada precisa ter pelo menos dois campos temporais válidos.")
+        )
+
+    duplicate_dates = _find_duplicate_dates(parsed_date_fields)
+    if duplicate_dates:
+        formatted = ", ".join(d.strftime("%Y-%m-%d") for d in duplicate_dates)
+        raise LayerValidationError(
+            tr("Foram encontradas datas de aquisição duplicadas: {dates}", dates=formatted)
+        )
+
+    return tuple(parsed_date_fields)
+
+
+def _component_definition_from_key(component_key: str) -> ComponentDefinition:
+    normalized_key = component_key.casefold()
 
     for definition in COMPONENT_DEFINITIONS:
-        has_velocity = definition.velocity_field.casefold() in normalized_fields
-        has_velocity_std = (
-            definition.velocity_std_field.casefold() in normalized_fields
-        )
-        if has_velocity and has_velocity_std:
+        if normalized_key in {definition.key.casefold(), definition.label.casefold()}:
+            return definition
+
+    if normalized_key in {UNKNOWN_COMPONENT.key, UNKNOWN_COMPONENT.label.casefold()}:
+        return UNKNOWN_COMPONENT
+
+    accepted = ", ".join(item.key for item in COMPONENT_DEFINITIONS)
+    raise LayerValidationError(
+        tr("Componente manual inválida: {component}. Valores aceitos: {accepted}.", component=component_key, accepted=accepted)
+    )
+
+
+def _detect_component(
+    layer_or_normalized_fields: Any,
+    normalized_fields: Optional[dict[str, str]] = None,
+    component_field: Optional[str] = None,
+) -> ComponentDefinition:
+    """Detecta a componente InSAR por campo, aliases ou nome de camada.
+
+    A assinatura também aceita o formato histórico interno
+    ``_detect_component(normalized_fields)`` para manter compatibilidade com os
+    testes unitários existentes enquanto a API pública do leitor evolui.
+    """
+
+    if normalized_fields is None and isinstance(layer_or_normalized_fields, dict):
+        layer = None
+        normalized_fields = layer_or_normalized_fields
+    else:
+        layer = layer_or_normalized_fields
+
+    if component_field is not None and layer is not None:
+        matches = _component_matches_from_values(layer, component_field)
+        if len(matches) == 1:
+            return matches[0]
+        if len(matches) > 1:
+            labels = ", ".join(item.label for item in matches)
+            raise LayerValidationError(
+                tr("O campo de componente contém valores ambíguos: {labels}.", labels=labels)
+            )
+
+    matches = []
+    for definition in COMPONENT_DEFINITIONS:
+        velocity_field = _find_field(normalized_fields, definition.velocity_field_aliases)
+        velocity_std_field = _find_field(normalized_fields, definition.velocity_std_field_aliases)
+        if velocity_field is not None or velocity_std_field is not None:
             matches.append(definition)
 
-    if not matches:
-        expected_pairs = "; ".join(
-            f"{item.velocity_field} + {item.velocity_std_field}"
-            for item in COMPONENT_DEFINITIONS
-        )
-        raise LayerValidationError(
-            tr("Não foi possível identificar a componente InSAR. Pares aceitos: {pairs}.", pairs=expected_pairs)
-        )
+    if len(matches) == 1:
+        return matches[0]
 
     if len(matches) > 1:
         labels = ", ".join(item.label for item in matches)
         raise LayerValidationError(
-            tr("A camada contém mais de um par de campos de componente e é ambígua: {labels}.", labels=labels)
+            tr("A camada contém campos de velocidade compatíveis com mais de uma componente e é ambígua: {labels}.", labels=labels)
         )
 
-    return matches[0]
+    if layer is not None:
+        name_matches = [
+            definition
+            for definition in COMPONENT_DEFINITIONS
+            if _text_matches_aliases(layer.name(), definition.name_aliases)
+        ]
+        if len(name_matches) == 1:
+            return name_matches[0]
+        if len(name_matches) > 1:
+            labels = ", ".join(item.label for item in name_matches)
+            raise LayerValidationError(
+                tr("O nome da camada sugere mais de uma componente e é ambíguo: {labels}.", labels=labels)
+            )
+
+    return UNKNOWN_COMPONENT
+
+
+def _component_matches_from_values(
+    layer: QgsVectorLayer,
+    component_field: str,
+    max_features: int = 25,
+) -> Tuple[ComponentDefinition, ...]:
+    matches = []
+    seen_keys = set()
+
+    for index, feature in enumerate(layer.getFeatures()):
+        if index >= max_features:
+            break
+        raw_value = _feature_value(feature, component_field)
+        if _is_null(raw_value):
+            continue
+        text = str(raw_value).strip()
+        if not text:
+            continue
+        for definition in COMPONENT_DEFINITIONS:
+            if definition.key in seen_keys:
+                continue
+            if _text_matches_aliases(text, definition.value_aliases):
+                matches.append(definition)
+                seen_keys.add(definition.key)
+
+    return tuple(matches)
+
+
+def _text_matches_aliases(text: str, aliases: Sequence[str]) -> bool:
+    normalized_text = _normalize_alias_text(text)
+    return any(_normalize_alias_text(alias) in normalized_text for alias in aliases)
+
+
+def _normalize_alias_text(text: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "", text.casefold())
 
 
 def _find_duplicate_dates(date_fields: Sequence[DateField]) -> Tuple[date, ...]:
@@ -474,6 +811,22 @@ def _validate_schema_layer(schema: LayerSchema, layer: QgsVectorLayer) -> None:
         raise LayerValidationError(
             tr("O esquema informado pertence a outra camada. Gere um novo esquema com inspect_layer(layer).")
         )
+
+
+def _sentinels_for_feature(
+    feature: QgsFeature,
+    schema: LayerSchema,
+    missing_sentinels: Sequence[float],
+) -> Tuple[float, ...]:
+    values = list(_normalize_sentinels(missing_sentinels))
+
+    if schema.sentinel_field is not None:
+        raw_value = _feature_value(feature, schema.sentinel_field)
+        numeric_value, status = _coerce_numeric(raw_value, ())
+        if status == "valid" and numeric_value is not None:
+            values.append(numeric_value)
+
+    return tuple(dict.fromkeys(values))
 
 
 def _normalize_sentinels(values: Sequence[float]) -> Tuple[float, ...]:
@@ -498,7 +851,7 @@ def _coerce_numeric(
 
     if isinstance(value, str):
         value = value.strip()
-        if not value or value.casefold() in {"null", "none", "nan", "na", "n/a"}:
+        if not value or value.casefold() in {"null", "none", "nan", "n/a"}:
             return None, "missing"
 
     try:

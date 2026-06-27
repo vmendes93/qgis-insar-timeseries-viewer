@@ -4,6 +4,28 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-06-27
+
+### Added
+
+- Added click-to-plot map interaction with display-mode-aware selection behavior.
+- Added active point highlighting, zoom-to-point, and clear-selection controls.
+- Added CSV export for displayed single, overlaid, separate, mean, and polygon-mean time-series data.
+- Added active-layer structural report with copyable metadata.
+- Added manual field-mapping workflow for non-standard layers.
+- Added release-candidate test plan for version 1.1.0.
+
+### Changed
+
+- Refined graph headers, trendline labeling, grid appearance, and export layout.
+- Extended the local quality gate to run release validation before security and QGIS style scans.
+- Promoted pytest deprecation warnings to errors to keep the test suite warning-free.
+
+### Fixed
+
+- Fixed click-to-plot button activation for valid active layers.
+- Fixed QGIS test fixtures to avoid deprecated field-type construction.
+
 ## [1.0.3] - 2026-06-26
 
 ### Added

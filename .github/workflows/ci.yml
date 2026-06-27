@@ -31,7 +31,7 @@ jobs:
       - name: Install test tools
         run: |
           python -m pip install --upgrade pip
-          python -m pip install pytest ruff "numpy<3" "matplotlib<4"
+          python -m pip install pytest ruff "numpy<3" "matplotlib<4" "pyshp>=2.3,<3"
 
       - name: Lint critical Python errors
         run: python -m ruff check insar_timeseries_viewer tests scripts

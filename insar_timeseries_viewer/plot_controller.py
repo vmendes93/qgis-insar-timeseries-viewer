@@ -49,7 +49,10 @@ def render_time_series(
         color = _series_color(index)
         _plot_one_series(axes, series, label, settings, color=color)
         if _trendline_applies(settings, index):
-            trend_label = tr('Trendline') if len(series_list) == 1 else f"{tr('Trendline')} — {label}"
+            if len(series_list) == 1:
+                trend_label = _trendline_label_for_series(series)
+            else:
+                trend_label = f"{tr('Trendline')} — {label}"
             _plot_trendline(
                 axes, series.dates, series.values, settings, label=trend_label
             )
@@ -60,7 +63,13 @@ def render_time_series(
     if len(series_list) == 1:
         axes.set_title(f"{series_list[0].identifier} — {component_label}")
     else:
-        axes.set_title(tr("{count} séries — {component}", count=len(series_list), component=component_label))
+        axes.set_title(
+            tr(
+                "{count} séries — {component}",
+                count=len(series_list),
+                component=component_label,
+            )
+        )
 
     _decorate_axis(
         axes,
@@ -71,7 +80,12 @@ def render_time_series(
     )
 
     columns = 2 if len(series_list) >= 8 else 1
-    _apply_legend(axes, settings, columns=columns)
+    _apply_legend(
+        axes,
+        settings,
+        columns=columns,
+        suppress_single_series=len(series_list) == 1,
+    )
 
     return _deduplicate(warnings)
 
@@ -414,6 +428,25 @@ def _plot_one_series(
     _tag_hover(line, series.dates, series.values, label)
 
 
+def _trendline_label_for_series(series) -> str:
+    velocity = getattr(series, "velocity", None)
+    if velocity is None:
+        return tr("Trendline")
+
+    try:
+        numeric_velocity = float(velocity)
+    except (TypeError, ValueError):
+        return tr("Trendline")
+
+    if not math.isfinite(numeric_velocity):
+        return tr("Trendline")
+
+    return tr(
+        "Trendline — VEL {value} mm/yr",
+        value=f"{numeric_velocity:.1f}",
+    )
+
+
 def _plot_trendline(
     axes, dates, values, settings: PlotSettings, *, label: str = "Trendline"
 ) -> bool:
@@ -447,23 +480,24 @@ def _plot_trendline(
     return True
 
 
-def _apply_legend(axes, settings: PlotSettings, *, columns: int = 1) -> None:
-    """Aplica legenda normal ou, quando ocultada, mantém a trendline identificada."""
+def _apply_legend(
+    axes,
+    settings: PlotSettings,
+    *,
+    columns: int = 1,
+    suppress_single_series: bool = False,
+) -> None:
+    """Aplica legenda normal ou mantém apenas a trendline quando necessário."""
     handles, labels = axes.get_legend_handles_labels()
     if not handles:
         return
 
-    if settings.show_legend:
+    if settings.show_legend and not suppress_single_series:
         axes.legend(handles, labels, fontsize="small", ncol=max(int(columns), 1))
         return
 
     if settings.show_trendline:
-        pairs = [
-            (handle, label)
-            for handle, label in zip(handles, labels)
-            if getattr(handle, "_insar_is_trendline", False) or
-            str(label).startswith("Trendline")
-        ]
+        pairs = _trendline_legend_pairs(handles, labels)
         if pairs:
             trend_handles, trend_labels = zip(*pairs)
             axes.legend(
@@ -472,6 +506,15 @@ def _apply_legend(axes, settings: PlotSettings, *, columns: int = 1) -> None:
                 fontsize="small",
                 ncol=max(int(columns), 1),
             )
+
+
+def _trendline_legend_pairs(handles, labels):
+    pairs = []
+    for handle, label in zip(handles, labels):
+        is_trendline = getattr(handle, "_insar_is_trendline", False)
+        if is_trendline or str(label).startswith("Trendline"):
+            pairs.append((handle, label))
+    return pairs
 
 
 def _trendline_applies(settings: PlotSettings, index: int) -> bool:

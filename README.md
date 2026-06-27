@@ -7,6 +7,8 @@ Open-source QGIS plugin for exploring, comparing, averaging, and exporting point
 
 The installable source is in [`insar_timeseries_viewer/`](insar_timeseries_viewer/README.md).
 
+The major planned development blocks are tracked in [`ROADMAP.md`](ROADMAP.md).
+
 ## Development
 
 ```bash
@@ -37,6 +39,7 @@ insar_timeseries_viewer/metadata.txt
 ```
 
 The generated ZIP and SHA-256 checksum are first created in `dist/`.
+Release 1.1.0 test plan: [`docs/RELEASE_1_1_0.md`](docs/RELEASE_1_1_0.md).
 
 By default, both files are also copied to the directory containing this repository. For the current project layout, that directory is:
 

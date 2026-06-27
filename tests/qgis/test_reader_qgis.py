@@ -10,10 +10,11 @@ from insar_timeseries_viewer.insar_timeseries_reader import inspect_layer, read_
 
 @pytest.fixture(scope="session", autouse=True)
 def qgis_application():
-    app = QgsApplication.instance() or QgsApplication([], False)
-    app.initQgis()
+    app = QgsApplication.instance()
+    if app is None:
+        app = QgsApplication([], False)
+        app.initQgis()
     yield app
-    app.exitQgis()
 
 
 def test_synthetic_geojson_reader():

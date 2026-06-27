@@ -16,10 +16,13 @@ from typing import Optional, Sequence
 import numpy as np
 
 from qgis.PyQt.QtCore import QDate, QTimer, Qt
+from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtWidgets import (
+    QApplication,
     QCheckBox,
     QComboBox,
     QDateEdit,
+    QDialog,
     QDockWidget,
     QDoubleSpinBox,
     QFormLayout,
@@ -40,7 +43,15 @@ from qgis.PyQt.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from qgis.core import QgsProject, QgsVectorLayer, QgsWkbTypes
+from qgis.core import (
+    QgsCoordinateTransform,
+    QgsCsException,
+    QgsGeometry,
+    QgsProject,
+    QgsRectangle,
+    QgsVectorLayer,
+    QgsWkbTypes,
+)
 from qgis.gui import QgsRubberBand
 
 try:
@@ -51,15 +62,23 @@ except ImportError:  # compatibilidade com instalações Matplotlib mais antigas
 from matplotlib.dates import date2num
 from matplotlib.figure import Figure
 
+from .field_mapping_dialog import FieldMappingDialog
 from .i18n import tr, translate_widget_tree
 from .insar_timeseries_reader import (
     FeatureReadError,
     LayerSchema,
     LayerValidationError,
     TimeSeriesData,
-    inspect_layer,
     read_feature,
 )
+from .layer_mapping_store import (
+    LayerMappingStoreError,
+    clear_layer_field_mapping,
+    load_layer_field_mapping,
+    save_layer_field_mapping,
+)
+from .layer_schema_service import SavedLayerMappingError, resolve_layer_schema
+from .layer_report import build_layer_report, format_layer_report
 from .orbit_direction import (
     ORBIT_ASCENDING,
     ORBIT_AUTO,
@@ -96,6 +115,12 @@ from .timeseries_statistics import (
     MeanSeriesResult,
     calculate_mean_series,
 )
+from .timeseries_csv_export import (
+    mean_rows,
+    polygon_group_rows,
+    series_rows,
+    write_csv,
+)
 from .polygon_means import (
     PolygonMeanBatchResult,
     PolygonMeanError,
@@ -103,6 +128,7 @@ from .polygon_means import (
     polygon_features_for_scope,
 )
 from .spatial_selection import (
+    PointClickTool,
     PolygonCaptureTool,
     SELECTION_ADD,
     SELECTION_REMOVE,
@@ -110,6 +136,7 @@ from .spatial_selection import (
     SpatialSelectionError,
     build_point_spatial_index,
     configure_persistent_rubber_band,
+    nearest_point_id_at_canvas_point,
     point_ids_intersecting_polygon,
     polygon_in_target_crs,
     resulting_selection_ids,
@@ -153,7 +180,10 @@ class TimeSeriesDockWidget(QDockWidget):
         self._settings_panel_width = DEFAULT_SETTINGS_PANEL_WIDTH
         self._polygon_capture_tool = None
         self._previous_map_tool = None
+        self._point_click_tool = None
+        self._previous_point_click_map_tool = None
         self._area_rubber_band = None
+        self._active_feature_rubber_band = None
         self._has_displayed_area = False
         self._point_spatial_index = None
         self._polygon_mean_batch: Optional[PolygonMeanBatchResult] = None
@@ -164,6 +194,7 @@ class TimeSeriesDockWidget(QDockWidget):
         self._displayed_mean_source_series: list[TimeSeriesData] = []
         self._displayed_polygon_groups = []
         self._additional_field_checks: dict[str, QCheckBox] = {}
+        self._current_layer_report_text = ""
 
         self._build_ui()
         self._connect_global_signals()
@@ -218,6 +249,14 @@ class TimeSeriesDockWidget(QDockWidget):
         self.refresh_button.setToolTip("Atualizar a lista de camadas compatíveis")
         self.refresh_button.clicked.connect(self.refresh_layers)
         layer_row.addWidget(self.refresh_button)
+
+        self.configure_fields_button = QPushButton("Configurar campos...")
+        self.configure_fields_button.setToolTip(
+            "Configurar mapeamento manual dos campos da camada"
+        )
+        self.configure_fields_button.clicked.connect(self._configure_layer_fields)
+        layer_row.addWidget(self.configure_fields_button)
+
         parent_layout.addLayout(layer_row)
 
         mode_row = QHBoxLayout()
@@ -241,6 +280,31 @@ class TimeSeriesDockWidget(QDockWidget):
         self.selection_count_label = QLabel("0 selecionadas")
         mode_row.addWidget(self.selection_count_label)
 
+        self.click_point_button = QPushButton("Clicar ponto")
+        self.click_point_button.setToolTip(
+            "Clique no mapa para selecionar o ponto InSAR mais próximo"
+        )
+        self.click_point_button.setCheckable(True)
+        self.click_point_button.setEnabled(False)
+        self.click_point_button.toggled.connect(self._toggle_point_click_tool)
+        mode_row.addWidget(self.click_point_button)
+
+        self.zoom_feature_button = QPushButton("Aproximar do ponto")
+        self.zoom_feature_button.setToolTip(
+            "Aproxima o mapa para a feição atualmente exibida no gráfico"
+        )
+        self.zoom_feature_button.setEnabled(False)
+        self.zoom_feature_button.clicked.connect(self._zoom_to_current_feature)
+        mode_row.addWidget(self.zoom_feature_button)
+
+        self.clear_selection_button = QPushButton("Limpar seleção")
+        self.clear_selection_button.setToolTip(
+            "Remove a seleção atual da camada pontual"
+        )
+        self.clear_selection_button.setEnabled(False)
+        self.clear_selection_button.clicked.connect(self._clear_current_selection)
+        mode_row.addWidget(self.clear_selection_button)
+
         self.settings_toggle_button = QToolButton()
         self.settings_toggle_button.setText("Configurações")
         self.settings_toggle_button.setToolTip(
@@ -257,6 +321,34 @@ class TimeSeriesDockWidget(QDockWidget):
         self.layer_info = QLabel("Nenhuma camada compatível selecionada.")
         self.layer_info.setWordWrap(True)
         parent_layout.addWidget(self.layer_info)
+
+        self.layer_report_group = QGroupBox("Relatório da camada")
+        layer_report_layout = QVBoxLayout(self.layer_report_group)
+        layer_report_layout.setSpacing(4)
+
+        layer_report_buttons = QHBoxLayout()
+        self.refresh_layer_report_button = QPushButton("Atualizar relatório")
+        self.refresh_layer_report_button.setToolTip(
+            "Atualiza o resumo estrutural da camada InSAR ativa"
+        )
+        self.refresh_layer_report_button.clicked.connect(self._update_layer_report)
+        layer_report_buttons.addWidget(self.refresh_layer_report_button)
+
+        self.copy_layer_report_button = QPushButton("Copiar relatório")
+        self.copy_layer_report_button.setToolTip(
+            "Copia o relatório da camada para a área de transferência"
+        )
+        self.copy_layer_report_button.clicked.connect(self._copy_layer_report)
+        layer_report_buttons.addWidget(self.copy_layer_report_button)
+        layer_report_buttons.addStretch(1)
+        layer_report_layout.addLayout(layer_report_buttons)
+
+        self.layer_report_label = QLabel("Nenhuma camada ativa.")
+        self.layer_report_label.setWordWrap(True)
+        self.layer_report_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        layer_report_layout.addWidget(self.layer_report_label)
+        self._clear_layer_report()
+        parent_layout.addWidget(self.layer_report_group)
 
     def _build_visualization_panel(self) -> None:
         main_layout = QVBoxLayout(self.visualization_panel)
@@ -819,6 +911,13 @@ class TimeSeriesDockWidget(QDockWidget):
         self.export_current_button.clicked.connect(self._export_current_graph)
         export_layout.addWidget(self.export_current_button)
 
+        self.export_data_button = QPushButton("Salvar dados CSV...")
+        self.export_data_button.setToolTip(
+            "Exporta as séries temporais atualmente exibidas para CSV"
+        )
+        self.export_data_button.clicked.connect(self._export_current_data_csv)
+        export_layout.addWidget(self.export_data_button)
+
         self.export_batch_button = QPushButton(
             "Salvar séries/médias separadamente..."
         )
@@ -961,6 +1060,9 @@ class TimeSeriesDockWidget(QDockWidget):
         self.iface.currentLayerChanged.connect(self._on_active_layer_changed)
 
     def shutdown(self) -> None:
+        self._restore_point_click_tool()
+        self._dispose_point_click_tool()
+        self._clear_active_feature_marker(remove=True)
         self._dispose_area_tools()
         self._disconnect_current_layer()
         for signal, slot in (
@@ -977,6 +1079,7 @@ class TimeSeriesDockWidget(QDockWidget):
 
     def _on_project_cleared(self, *_args) -> None:
         self._clear_drawn_area(update_status=False)
+        self._clear_active_feature_marker()
         self._point_spatial_index = None
         self._polygon_mean_batch = None
         self.settings = PlotSettings()
@@ -986,6 +1089,7 @@ class TimeSeriesDockWidget(QDockWidget):
 
     def _on_project_read(self, *_args) -> None:
         self._clear_drawn_area(update_status=False)
+        self._clear_active_feature_marker()
         self._point_spatial_index = None
         self._polygon_mean_batch = None
         self.settings = PlotSettings.load(self.project)
@@ -1009,8 +1113,8 @@ class TimeSeriesDockWidget(QDockWidget):
                 if not self._is_point_vector_layer(layer):
                     continue
                 try:
-                    schema = inspect_layer(layer)
-                except LayerValidationError:
+                    schema = resolve_layer_schema(layer).schema
+                except (LayerValidationError, SavedLayerMappingError):
                     continue
                 override = load_layer_orbit_override(self.project, layer.id())
                 label = component_display_label(schema, layer, override)
@@ -1059,6 +1163,53 @@ class TimeSeriesDockWidget(QDockWidget):
         if not self._refreshing_layers:
             self._activate_layer_by_id(self._selected_layer_id())
 
+    def _configure_layer_fields(self) -> None:
+        layer = self.current_layer
+        if layer is None:
+            layer_id = self._selected_layer_id()
+            layer = self.project.mapLayer(layer_id) if layer_id else None
+        if layer is None:
+            active_layer = self.iface.activeLayer()
+            layer = active_layer if self._is_point_vector_layer(active_layer) else None
+
+        if not self._is_point_vector_layer(layer):
+            QMessageBox.warning(
+                self,
+                tr("Configurar campos"),
+                tr("Selecione uma camada pontual antes de configurar campos."),
+            )
+            return
+
+        try:
+            initial_mapping = load_layer_field_mapping(layer)
+        except LayerMappingStoreError as exc:
+            QMessageBox.warning(
+                self,
+                tr("Configurar campos"),
+                tr(
+                    "O mapeamento salvo não pôde ser lido e será ignorado: {error}",
+                    error=str(exc),
+                ),
+            )
+            initial_mapping = None
+
+        dialog = FieldMappingDialog(layer, initial_mapping, self)
+        if dialog.exec() != QDialog.Accepted:
+            return
+
+        if dialog.clear_requested:
+            clear_layer_field_mapping(layer)
+            self.status_label.setText(
+                tr("Mapeamento manual removido da camada {layer}.", layer=layer.name())
+            )
+        else:
+            save_layer_field_mapping(layer, dialog.field_mapping())
+            self.status_label.setText(
+                tr("Mapeamento de campos salvo para {layer}.", layer=layer.name())
+            )
+
+        self.refresh_layers()
+
     def _selected_layer_id(self):
         return self.layer_combo.currentData()
 
@@ -1082,13 +1233,16 @@ class TimeSeriesDockWidget(QDockWidget):
 
         if not layer_id:
             self.layer_info.setText("Nenhuma camada compatível selecionada.")
+            self._clear_layer_report()
             self.selection_count_label.setText("0 selecionadas")
             self._sync_orbit_control()
             self._refresh_additional_property_fields()
             self._clear_feature_info()
+            self._clear_active_feature_marker()
             self._show_plot_message(tr("Selecione uma camada InSAR compatível."))
             self.status_label.setText("")
             self._update_area_control_states()
+            self._update_selection_action_states()
             return
 
         layer = self.project.mapLayer(layer_id)
@@ -1097,8 +1251,8 @@ class TimeSeriesDockWidget(QDockWidget):
             return
 
         try:
-            schema = inspect_layer(layer)
-        except LayerValidationError as exc:
+            schema = resolve_layer_schema(layer).schema
+        except (LayerValidationError, SavedLayerMappingError) as exc:
             self._show_layer_error(str(exc))
             return
 
@@ -1117,6 +1271,7 @@ class TimeSeriesDockWidget(QDockWidget):
         self._sync_x_dates_for_schema(schema)
         self._refresh_additional_property_fields()
         self._update_layer_info()
+        self._update_layer_report()
         self._update_area_control_states()
         self._update_from_current_selection()
 
@@ -1137,7 +1292,42 @@ class TimeSeriesDockWidget(QDockWidget):
             )
         )
 
+    def _update_layer_report(self, *_args) -> None:
+        if self.current_layer is None or self.current_schema is None:
+            self._clear_layer_report()
+            return
+        report = build_layer_report(
+            self.current_layer,
+            self.current_schema,
+            component_label=self._effective_component_label(),
+        )
+        self._current_layer_report_text = format_layer_report(report)
+        self.layer_report_label.setText(self._current_layer_report_text)
+        self.refresh_layer_report_button.setEnabled(True)
+        self.copy_layer_report_button.setEnabled(True)
+
+    def _clear_layer_report(self) -> None:
+        self._current_layer_report_text = ""
+        if not hasattr(self, "layer_report_label"):
+            return
+        self.layer_report_label.setText("Nenhuma camada ativa.")
+        self.refresh_layer_report_button.setEnabled(False)
+        self.copy_layer_report_button.setEnabled(False)
+
+    def _copy_layer_report(self, *_args) -> None:
+        if not self._current_layer_report_text:
+            self.status_label.setText(
+                tr("Nenhum relatório de camada disponível para copiar.")
+            )
+            return
+        QApplication.clipboard().setText(self._current_layer_report_text)
+        self.status_label.setText(
+            tr("Relatório da camada copiado para a área de transferência.")
+        )
+
     def _disconnect_current_layer(self) -> None:
+        self._restore_point_click_tool()
+        self._clear_active_feature_marker()
         if self.current_layer is None:
             return
         try:
@@ -1855,6 +2045,331 @@ class TimeSeriesDockWidget(QDockWidget):
         self._has_displayed_area = False
         self._point_spatial_index = None
 
+    # ---------------------------------------------------------- click-to-plot
+    def _toggle_point_click_tool(self, checked: bool) -> None:
+        if checked:
+            self._start_point_click_tool()
+        else:
+            self._restore_point_click_tool()
+
+    def _start_point_click_tool(self) -> None:
+        if self.current_layer is None or self.current_schema is None:
+            self.status_label.setText(
+                tr("Selecione primeiro uma camada pontual InSAR compatível.")
+            )
+            self.click_point_button.setChecked(False)
+            return
+
+        self._restore_previous_map_tool()
+        canvas = self.iface.mapCanvas()
+        if self._point_click_tool is None:
+            self._point_click_tool = PointClickTool(canvas)
+            self._point_click_tool.pointClicked.connect(self._on_map_point_clicked)
+            self._point_click_tool.canceled.connect(self._on_point_click_canceled)
+            self._point_click_tool.deactivated.connect(
+                self._on_point_click_tool_deactivated
+            )
+
+        active_tool = canvas.mapTool()
+        if active_tool is not self._point_click_tool:
+            self._previous_point_click_map_tool = active_tool
+
+        self.click_point_button.setText(tr("Clicando ponto..."))
+        self.status_label.setText(
+            tr("Clique no mapa para selecionar o ponto InSAR mais próximo. Esc cancela.")
+        )
+        canvas.setMapTool(self._point_click_tool)
+
+    def _on_map_point_clicked(self, map_point) -> None:
+        layer = self.current_layer
+        if layer is None or self.current_schema is None:
+            self.status_label.setText(
+                tr("Selecione primeiro uma camada pontual InSAR compatível.")
+            )
+            self._restore_point_click_tool()
+            return
+
+        try:
+            if self._point_spatial_index is None:
+                self.status_label.setText(
+                    tr("Construindo índice espacial da camada de pontos...")
+                )
+                self._point_spatial_index = build_point_spatial_index(layer)
+
+            feature_id = nearest_point_id_at_canvas_point(
+                layer,
+                map_point,
+                self.iface.mapCanvas(),
+                project=self.project,
+                spatial_index=self._point_spatial_index,
+                tolerance_pixels=10,
+            )
+        except SpatialSelectionError as exc:
+            self.status_label.setText(str(exc))
+            return
+        except Exception as exc:
+            self.status_label.setText(
+                tr(
+                    "Falha inesperada ao selecionar ponto pelo clique: {kind}: {error}",
+                    kind=type(exc).__name__,
+                    error=exc,
+                )
+            )
+            return
+
+        if feature_id is None:
+            self.status_label.setText(
+                tr("Nenhum ponto InSAR encontrado próximo ao clique.")
+            )
+            return
+
+        self._apply_clicked_point_selection(layer, feature_id)
+
+    def _apply_clicked_point_selection(self, layer, feature_id: int) -> None:
+        self.current_feature_id = feature_id
+        mode = self.settings.display_mode
+
+        if mode in {"overlay", "separate", "mean"}:
+            selected_ids = {int(item) for item in layer.selectedFeatureIds()}
+            selected_ids.add(int(feature_id))
+            final_ids = sorted(selected_ids)
+            layer.selectByIds(final_ids)
+            status = tr(
+                "Ponto FID {fid} adicionado pelo clique no mapa; {count} ponto(s) selecionado(s).",
+                fid=feature_id,
+                count=len(final_ids),
+            )
+        else:
+            layer.selectByIds([int(feature_id)])
+            status = tr(
+                "Ponto FID {fid} selecionado pelo clique no mapa.",
+                fid=feature_id,
+            )
+
+        self._show_active_feature_marker(feature_id)
+        self.status_label.setText(status)
+        self._update_selection_action_states()
+
+    def _on_point_click_canceled(self) -> None:
+        self._restore_point_click_tool()
+        self.status_label.setText(tr("Seleção por clique cancelada."))
+
+    def _on_point_click_tool_deactivated(self) -> None:
+        if hasattr(self, "click_point_button"):
+            self.click_point_button.blockSignals(True)
+            self.click_point_button.setChecked(False)
+            self.click_point_button.setText(tr("Clicar ponto"))
+            self.click_point_button.blockSignals(False)
+
+    def _restore_point_click_tool(self) -> None:
+        if self._point_click_tool is None:
+            self._previous_point_click_map_tool = None
+            if hasattr(self, "click_point_button"):
+                self.click_point_button.setText(tr("Clicar ponto"))
+            return
+
+        canvas = self.iface.mapCanvas()
+        if canvas.mapTool() is self._point_click_tool:
+            previous = self._previous_point_click_map_tool
+            try:
+                if previous is not None and previous is not self._point_click_tool:
+                    canvas.setMapTool(previous)
+                else:
+                    canvas.unsetMapTool(self._point_click_tool)
+            except RuntimeError:
+                try:
+                    canvas.unsetMapTool(self._point_click_tool)
+                except RuntimeError:
+                    pass
+
+        self._previous_point_click_map_tool = None
+        if hasattr(self, "click_point_button"):
+            self.click_point_button.blockSignals(True)
+            self.click_point_button.setChecked(False)
+            self.click_point_button.setText(tr("Clicar ponto"))
+            self.click_point_button.blockSignals(False)
+
+    def _dispose_point_click_tool(self) -> None:
+        if self._point_click_tool is None:
+            return
+
+        for signal, slot in (
+            (self._point_click_tool.pointClicked, self._on_map_point_clicked),
+            (self._point_click_tool.canceled, self._on_point_click_canceled),
+            (self._point_click_tool.deactivated, self._on_point_click_tool_deactivated),
+        ):
+            try:
+                signal.disconnect(slot)
+            except (TypeError, RuntimeError):
+                pass
+        self._point_click_tool = None
+        self._previous_point_click_map_tool = None
+
+    # ------------------------------------------------------- point navigation
+    def _update_selection_action_states(self) -> None:
+        if not hasattr(self, "zoom_feature_button"):
+            return
+
+        has_layer = self.current_layer is not None
+        has_current_feature = has_layer and self.current_feature_id is not None
+        selected_count = 0
+        if has_layer:
+            try:
+                selected_count = len(self.current_layer.selectedFeatureIds())
+            except RuntimeError:
+                selected_count = 0
+
+        self.click_point_button.setEnabled(has_layer)
+        self.zoom_feature_button.setEnabled(has_current_feature)
+        self.clear_selection_button.setEnabled(has_layer and selected_count > 0)
+
+    def _current_feature(self):
+        layer = self.current_layer
+        if layer is None or self.current_feature_id is None:
+            return None
+        try:
+            feature = layer.getFeature(int(self.current_feature_id))
+        except (TypeError, RuntimeError):
+            return None
+        if feature is None or not feature.isValid():
+            return None
+        return feature
+
+    def _clear_current_selection(self, *_args) -> None:
+        if self.current_layer is not None:
+            self.current_layer.removeSelection()
+        self._clear_active_feature_marker()
+        self._update_selection_action_states()
+
+    def _active_feature_marker(self):
+        if self._active_feature_rubber_band is None:
+            band = QgsRubberBand(
+                self.iface.mapCanvas(),
+                QgsWkbTypes.PointGeometry,
+            )
+            band.setColor(QColor(255, 170, 0, 230))
+            band.setWidth(3)
+            if hasattr(band, "setIcon"):
+                band.setIcon(QgsRubberBand.ICON_CIRCLE)
+            if hasattr(band, "setIconSize"):
+                band.setIconSize(14)
+            self._active_feature_rubber_band = band
+        return self._active_feature_rubber_band
+
+    def _show_active_feature_marker(self, feature_id: int) -> None:
+        layer = self.current_layer
+        if layer is None:
+            self._clear_active_feature_marker()
+            return
+
+        try:
+            feature = layer.getFeature(int(feature_id))
+        except (TypeError, RuntimeError):
+            self._clear_active_feature_marker()
+            return
+
+        if feature is None or not feature.isValid() or not feature.hasGeometry():
+            self._clear_active_feature_marker()
+            return
+
+        geometry = feature.geometry()
+        if geometry is None or geometry.isEmpty():
+            self._clear_active_feature_marker()
+            return
+
+        band = self._active_feature_marker()
+        try:
+            band.reset(QgsWkbTypes.PointGeometry)
+            band.setToGeometry(geometry, layer)
+            band.show()
+        except RuntimeError:
+            self._active_feature_rubber_band = None
+
+    def _clear_active_feature_marker(self, *, remove: bool = False) -> None:
+        band = self._active_feature_rubber_band
+        if band is None:
+            return
+
+        try:
+            band.reset(QgsWkbTypes.PointGeometry)
+        except RuntimeError:
+            self._active_feature_rubber_band = None
+            return
+
+        if not remove:
+            return
+
+        try:
+            self.iface.mapCanvas().scene().removeItem(band)
+        except (AttributeError, RuntimeError):
+            pass
+        self._active_feature_rubber_band = None
+
+    def _feature_geometry_in_canvas_crs(self, feature):
+        layer = self.current_layer
+        if layer is None or feature is None or not feature.hasGeometry():
+            return None
+
+        geometry = QgsGeometry(feature.geometry())
+        if geometry is None or geometry.isEmpty():
+            return None
+
+        canvas = self.iface.mapCanvas()
+        source_crs = layer.crs()
+        target_crs = canvas.mapSettings().destinationCrs()
+        if source_crs.isValid() and target_crs.isValid() and source_crs != target_crs:
+            try:
+                transform = QgsCoordinateTransform(
+                    source_crs,
+                    target_crs,
+                    self.project,
+                )
+                geometry.transform(transform)
+            except (QgsCsException, RuntimeError, ValueError) as exc:
+                self.status_label.setText(
+                    tr(
+                        "Não foi possível reprojetar o ponto para o mapa: {error}",
+                        error=exc,
+                    )
+                )
+                return None
+
+        return geometry
+
+    def _zoom_to_current_feature(self, *_args) -> None:
+        feature = self._current_feature()
+        geometry = self._feature_geometry_in_canvas_crs(feature)
+        if geometry is None:
+            self.status_label.setText(
+                tr("Nenhum ponto válido está disponível para aproximar.")
+            )
+            self._update_selection_action_states()
+            return
+
+        canvas = self.iface.mapCanvas()
+        bbox = geometry.boundingBox()
+        center = bbox.center()
+        current_extent = canvas.extent()
+        fallback_width = max(current_extent.width() * 0.025, 1.0)
+        fallback_height = max(current_extent.height() * 0.025, 1.0)
+        half_width = max(bbox.width() * 4.0, fallback_width)
+        half_height = max(bbox.height() * 4.0, fallback_height)
+
+        canvas.setExtent(
+            QgsRectangle(
+                center.x() - half_width,
+                center.y() - half_height,
+                center.x() + half_width,
+                center.y() + half_height,
+            )
+        )
+        canvas.refresh()
+        self._show_active_feature_marker(int(feature.id()))
+        self.status_label.setText(
+            tr("Mapa aproximado para FID {fid}.", fid=int(feature.id()))
+        )
+        self._update_selection_action_states()
+
     # ----------------------------------------------------------- selection
     def _on_selection_changed(self, selected, deselected, _clear_and_select) -> None:
         newly_selected = list(selected)
@@ -1892,8 +2407,11 @@ class TimeSeriesDockWidget(QDockWidget):
             self.status_label.setText(
                 "Use uma ferramenta normal de seleção do QGIS para escolher os pontos."
             )
+            self._clear_active_feature_marker()
+            self._update_selection_action_states()
             return
 
+        self._update_selection_action_states()
         if self.settings.display_mode == "overlay":
             self._display_overlay_selection(selected_ids)
         elif self.settings.display_mode == "separate":
@@ -2109,6 +2627,8 @@ class TimeSeriesDockWidget(QDockWidget):
         self._displayed_polygon_groups = list(groups)
         self._apply_preview_watermark()
         self.canvas.draw_idle()
+        self._clear_active_feature_marker()
+        self._update_selection_action_states()
         self._update_export_control_states()
         self._fill_polygon_mean_info(groups, component_label)
         self._update_additional_properties_info()
@@ -2225,9 +2745,12 @@ class TimeSeriesDockWidget(QDockWidget):
             )
 
         if len(series_list) == 1:
+            self._show_active_feature_marker(series_list[0].feature_id)
             self._fill_single_info(series_list[0], component_label)
         else:
+            self._clear_active_feature_marker()
             self._fill_multiple_info(series_list, component_label)
+        self._update_selection_action_states()
         self._update_additional_properties_info()
         return plot_warnings
 
@@ -2252,6 +2775,8 @@ class TimeSeriesDockWidget(QDockWidget):
         self._displayed_polygon_groups = []
         self._apply_preview_watermark()
         self.canvas.draw_idle()
+        self._clear_active_feature_marker()
+        self._update_selection_action_states()
         self._update_export_control_states()
         self._fill_mean_info(result, component_label)
         self._update_additional_properties_info()
@@ -2341,6 +2866,8 @@ class TimeSeriesDockWidget(QDockWidget):
 
     def _show_plot_message(self, message: str) -> None:
         self._clear_export_payload()
+        self._clear_active_feature_marker()
+        self._update_selection_action_states()
         self._set_chart_height(1, separate=False)
         render_message(self.figure, tr(message))
         self.canvas.draw_idle()
@@ -2381,6 +2908,7 @@ class TimeSeriesDockWidget(QDockWidget):
             len(self._displayed_polygon_groups),
         )
         self.export_current_button.setEnabled(has_current)
+        self.export_data_button.setEnabled(has_current)
         self.export_batch_button.setEnabled(batch_count >= 1)
 
     def _export_current_graph(self, *_args) -> None:
@@ -2435,6 +2963,91 @@ class TimeSeriesDockWidget(QDockWidget):
             tr("Exportação concluída"),
             tr("Gráfico salvo em:\n{path}", path=target),
         )
+
+    def _export_current_data_csv(self, *_args) -> None:
+        rows = self._current_data_csv_rows()
+        if not rows:
+            QMessageBox.information(
+                self,
+                tr("Exportação CSV"),
+                tr("Não há dados válidos para exportar."),
+            )
+            return
+
+        initial_dir = self._export_initial_directory()
+        suggested = ensure_extension(
+            initial_dir / sanitize_filename(self._current_export_basename()),
+            "csv",
+        )
+        filename, _selected_filter = QFileDialog.getSaveFileName(
+            self,
+            tr("Salvar dados CSV"),
+            str(suggested),
+            tr("Arquivo CSV (*.csv)"),
+        )
+        if not filename:
+            return
+
+        target = ensure_extension(Path(filename), "csv")
+        try:
+            row_count = write_csv(target, rows)
+        except Exception as exc:
+            QMessageBox.critical(
+                self,
+                tr("Falha na exportação CSV"),
+                tr(
+                    "Não foi possível salvar os dados CSV.\n\n{kind}: {error}",
+                    kind=type(exc).__name__,
+                    error=exc,
+                ),
+            )
+            return
+
+        self._remember_export_directory(target.parent)
+        self.status_label.setText(
+            tr(
+                "Dados CSV exportados para {path} ({count} linha(s)).",
+                path=target,
+                count=row_count,
+            )
+        )
+        QMessageBox.information(
+            self,
+            tr("Exportação CSV concluída"),
+            tr("Dados salvos em:\n{path}", path=target),
+        )
+
+    def _current_data_csv_rows(self) -> list[dict[str, object]]:
+        mode = self._displayed_mode or self.settings.display_mode
+        component_label = self._effective_component_label()
+
+        if mode == "mean" and self._displayed_mean_result is not None:
+            point_ids = [
+                item.feature_id for item in self._displayed_mean_source_series
+            ]
+            return mean_rows(
+                self._displayed_mean_result,
+                label=tr(
+                    "Média de {count} pontos",
+                    count=self._displayed_mean_result.series_count,
+                ),
+                component_label=component_label,
+                point_ids=point_ids,
+            )
+
+        if mode in {"polygon_means_overlay", "polygon_means_separate"}:
+            return polygon_group_rows(
+                self._displayed_polygon_groups,
+                component_label=component_label,
+            )
+
+        rows = []
+        labels = self._displayed_labels or self._unique_legend_labels(
+            self._displayed_series
+        )
+        for series, label in zip(self._displayed_series, labels):
+            rows.extend(series_rows(series, label=label))
+        return rows
 
     def _export_batch_graphs(self, *_args) -> None:
         if not self._displayed_series and not self._displayed_polygon_groups:
@@ -2646,7 +3259,8 @@ class TimeSeriesDockWidget(QDockWidget):
             enabled=self.settings.export_include_header,
         )
         if self.settings.export_include_header:
-            figure.tight_layout(rect=(0.0, 0.0, 1.0, 0.955), h_pad=1.2)
+            top = 0.925 if "\n" in header else 0.955
+            figure.tight_layout(rect=(0.0, 0.0, 1.0, top), h_pad=1.2)
         else:
             figure.tight_layout(h_pad=1.2)
 
@@ -2688,10 +3302,11 @@ class TimeSeriesDockWidget(QDockWidget):
             f"{self._header_number(series.cumulative_displacement)} | "
             f"{velocity_std_name}: {self._header_number(series.velocity_std)}"
         )
-        return header + self._additional_header_suffix_for_ids(
+        suffix = self._additional_header_suffix_for_ids(
             [series.feature_id],
             mode="single",
         )
+        return self._join_export_header(header, suffix)
 
     def _mean_export_header(
         self,
@@ -2709,10 +3324,11 @@ class TimeSeriesDockWidget(QDockWidget):
             f"{velocity_std_name}: "
             f"{self._header_number(result.mean_velocity_std)}"
         )
-        return header + self._additional_header_suffix_for_ids(
+        suffix = self._additional_header_suffix_for_ids(
             point_ids,
             mode="mean",
         )
+        return self._join_export_header(header, suffix)
 
     def _multiple_series_export_header(self, series_list) -> str:
         schema = self.current_schema
@@ -2729,10 +3345,11 @@ class TimeSeriesDockWidget(QDockWidget):
             f"Cumulative Displacement: {self._header_range(cumulative)} | "
             f"{velocity_std_name}: {self._header_range(velocity_stds)}"
         )
-        return header + self._additional_header_suffix_for_ids(
+        suffix = self._additional_header_suffix_for_ids(
             [item.feature_id for item in series_list],
             mode="range",
         )
+        return self._join_export_header(header, suffix)
 
     def _polygon_group_export_header(self, group) -> str:
         return (
@@ -2761,7 +3378,8 @@ class TimeSeriesDockWidget(QDockWidget):
             f"Cumulative Displacement: {self._header_range(cumulative)} | "
             f"{velocity_std_name}: {self._header_range(velocity_stds)}"
         )
-        return header + self._additional_header_suffix_for_groups(groups)
+        suffix = self._additional_header_suffix_for_groups(groups)
+        return self._join_export_header(header, suffix)
 
     def _current_export_basename(self) -> str:
         mode = self._displayed_mode or self.settings.display_mode
@@ -2810,6 +3428,15 @@ class TimeSeriesDockWidget(QDockWidget):
     def _remember_export_directory(self, directory: Path) -> None:
         self.settings.export_last_dir = str(directory)
         self.settings.save(self.project)
+
+    @staticmethod
+    def _join_export_header(primary: str, suffix: str) -> str:
+        suffix = str(suffix or "").strip()
+        if not suffix:
+            return primary
+        if suffix.startswith("| "):
+            suffix = suffix[2:].strip()
+        return f"{primary}\n{suffix}"
 
     @staticmethod
     def _header_number(value) -> str:
@@ -2914,6 +3541,7 @@ class TimeSeriesDockWidget(QDockWidget):
                 },
                 zorder=20,
             )
+            self._configure_hover_annotation_layout(annotation)
             axes._insar_hover_annotation = annotation
 
         item_date = metadata["dates"][index]
@@ -2935,10 +3563,56 @@ class TimeSeriesDockWidget(QDockWidget):
             if other is not None and other is not annotation:
                 other.set_visible(False)
 
+        placement = self._hover_annotation_placement(axes, event)
+        xytext, horizontal_alignment, vertical_alignment = placement
+        hover_key = (id(line), index, tuple(xytext), tuple(text_parts))
+
+        if (
+            getattr(axes, "_insar_hover_key", None) == hover_key and
+            annotation.get_visible()
+        ):
+            return
+
+        axes._insar_hover_key = hover_key
         annotation.xy = xy
+        annotation.set_position(xytext)
+        annotation.set_ha(horizontal_alignment)
+        annotation.set_va(vertical_alignment)
         annotation.set_text("\n".join(text_parts))
         annotation.set_visible(True)
         self.canvas.draw_idle()
+
+    def _hover_annotation_placement(self, axes, event):
+        bbox = axes.bbox
+        x_mid = bbox.x0 + bbox.width * 0.5
+        y_mid = bbox.y0 + bbox.height * 0.5
+
+        if event.x >= x_mid:
+            x_offset = -12
+            horizontal_alignment = "right"
+        else:
+            x_offset = 12
+            horizontal_alignment = "left"
+
+        if event.y >= y_mid:
+            y_offset = -12
+            vertical_alignment = "top"
+        else:
+            y_offset = 12
+            vertical_alignment = "bottom"
+
+        return (x_offset, y_offset), horizontal_alignment, vertical_alignment
+
+    def _configure_hover_annotation_layout(self, annotation) -> None:
+        annotation.set_clip_on(False)
+        try:
+            annotation.set_annotation_clip(False)
+        except AttributeError:
+            pass
+        try:
+            annotation.set_in_layout(False)
+        except AttributeError:
+            pass
 
     def _hide_hover_annotations(self) -> None:
         changed = False
@@ -2946,6 +3620,7 @@ class TimeSeriesDockWidget(QDockWidget):
             annotation = getattr(axes, "_insar_hover_annotation", None)
             if annotation is not None and annotation.get_visible():
                 annotation.set_visible(False)
+                axes._insar_hover_key = None
                 changed = True
         if changed:
             self.canvas.draw_idle()
