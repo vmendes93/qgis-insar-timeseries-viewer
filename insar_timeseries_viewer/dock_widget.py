@@ -2121,6 +2121,7 @@ class TimeSeriesDockWidget(QDockWidget):
             except RuntimeError:
                 selected_count = 0
 
+        self.click_point_button.setEnabled(has_layer)
         self.zoom_feature_button.setEnabled(has_current_feature)
         self.clear_selection_button.setEnabled(has_layer and selected_count > 0)
 
