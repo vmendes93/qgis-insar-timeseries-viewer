@@ -20,6 +20,7 @@ from qgis.PyQt.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDateEdit,
+    QDialog,
     QDockWidget,
     QDoubleSpinBox,
     QFormLayout,
@@ -51,6 +52,7 @@ except ImportError:  # compatibilidade com instalações Matplotlib mais antigas
 from matplotlib.dates import date2num
 from matplotlib.figure import Figure
 
+from .field_mapping_dialog import FieldMappingDialog
 from .i18n import tr, translate_widget_tree
 from .insar_timeseries_reader import (
     FeatureReadError,
@@ -58,6 +60,12 @@ from .insar_timeseries_reader import (
     LayerValidationError,
     TimeSeriesData,
     read_feature,
+)
+from .layer_mapping_store import (
+    LayerMappingStoreError,
+    clear_layer_field_mapping,
+    load_layer_field_mapping,
+    save_layer_field_mapping,
 )
 from .layer_schema_service import SavedLayerMappingError, resolve_layer_schema
 from .orbit_direction import (
@@ -218,6 +226,14 @@ class TimeSeriesDockWidget(QDockWidget):
         self.refresh_button.setToolTip("Atualizar a lista de camadas compatíveis")
         self.refresh_button.clicked.connect(self.refresh_layers)
         layer_row.addWidget(self.refresh_button)
+
+        self.configure_fields_button = QPushButton("Configurar campos...")
+        self.configure_fields_button.setToolTip(
+            "Configurar mapeamento manual dos campos da camada"
+        )
+        self.configure_fields_button.clicked.connect(self._configure_layer_fields)
+        layer_row.addWidget(self.configure_fields_button)
+
         parent_layout.addLayout(layer_row)
 
         mode_row = QHBoxLayout()
@@ -1058,6 +1074,50 @@ class TimeSeriesDockWidget(QDockWidget):
     def _on_layer_combo_changed(self, _index: int) -> None:
         if not self._refreshing_layers:
             self._activate_layer_by_id(self._selected_layer_id())
+
+    def _configure_layer_fields(self) -> None:
+        layer = self.current_layer
+        if layer is None:
+            layer_id = self._selected_layer_id()
+            layer = self.project.mapLayer(layer_id) if layer_id else None
+
+        if not self._is_point_vector_layer(layer):
+            QMessageBox.warning(
+                self,
+                tr("Configurar campos"),
+                tr("Selecione uma camada pontual antes de configurar campos."),
+            )
+            return
+
+        try:
+            initial_mapping = load_layer_field_mapping(layer)
+        except LayerMappingStoreError as exc:
+            QMessageBox.warning(
+                self,
+                tr("Configurar campos"),
+                tr(
+                    "O mapeamento salvo não pôde ser lido e será ignorado: {error}",
+                    error=str(exc),
+                ),
+            )
+            initial_mapping = None
+
+        dialog = FieldMappingDialog(layer, initial_mapping, self)
+        if dialog.exec() != QDialog.Accepted:
+            return
+
+        if dialog.clear_requested:
+            clear_layer_field_mapping(layer)
+            self.status_label.setText(
+                tr("Mapeamento manual removido da camada {layer}.", layer=layer.name())
+            )
+        else:
+            save_layer_field_mapping(layer, dialog.field_mapping())
+            self.status_label.setText(
+                tr("Mapeamento de campos salvo para {layer}.", layer=layer.name())
+            )
+
+        self.refresh_layers()
 
     def _selected_layer_id(self):
         return self.layer_combo.currentData()
