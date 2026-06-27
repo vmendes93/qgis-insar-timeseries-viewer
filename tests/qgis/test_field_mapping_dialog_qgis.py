@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+from datetime import date
+
 import pytest
 
 qgis_core = pytest.importorskip("qgis.core")
@@ -13,10 +15,13 @@ qgis_qtcore = pytest.importorskip("qgis.PyQt.QtCore")
 QgsApplication = qgis_core.QgsApplication
 QgsField = qgis_core.QgsField
 QgsVectorLayer = qgis_core.QgsVectorLayer
+QDate = qgis_qtcore.QDate
+Qt = qgis_qtcore.Qt
 QVariant = qgis_qtcore.QVariant
 
 from insar_timeseries_viewer.field_mapping_dialog import FieldMappingDialog  # noqa: E402
 from insar_timeseries_viewer.insar_timeseries_reader import (  # noqa: E402
+    DateField,
     LayerFieldMapping,
 )
 
@@ -54,6 +59,39 @@ def layer() -> QgsVectorLayer:
     )
     vector_layer.updateFields()
     return vector_layer
+
+
+def _set_temporal_mode(dialog: FieldMappingDialog, mode: str) -> None:
+    index = dialog.temporal_mode_combo.findData(mode)
+    assert index >= 0
+    dialog.temporal_mode_combo.setCurrentIndex(index)
+
+
+def _temporal_row(dialog: FieldMappingDialog, field_name: str) -> int:
+    row = dialog._temporal_row_by_field_name[field_name]
+    assert row >= 0
+    return row
+
+
+def _set_temporal_checked(
+    dialog: FieldMappingDialog,
+    field_name: str,
+    checked: bool,
+) -> None:
+    item = dialog.temporal_fields_table.item(_temporal_row(dialog, field_name), 0)
+    item.setCheckState(Qt.Checked if checked else Qt.Unchecked)
+
+
+def _set_temporal_date(
+    dialog: FieldMappingDialog,
+    field_name: str,
+    qdate: QDate,
+) -> None:
+    date_edit = dialog.temporal_fields_table.cellWidget(
+        _temporal_row(dialog, field_name),
+        2,
+    )
+    date_edit.setDate(qdate)
 
 
 def test_field_mapping_dialog_returns_empty_mapping_by_default(layer):
@@ -125,3 +163,49 @@ def test_field_mapping_dialog_summarizes_many_temporal_fields_compactly(layer):
     assert "First: D20240101, D20240201, D20240301" in summary
     assert "Last: D20240501, D20240601, D20240701" in summary
     assert "D20240401" not in summary
+
+
+def test_field_mapping_dialog_manual_temporal_mode_exports_date_fields(layer):
+    dialog = FieldMappingDialog(layer)
+
+    _set_temporal_mode(dialog, "manual")
+    mapping = dialog.field_mapping()
+
+    assert mapping.date_fields == (
+        DateField(name="D20240101", acquisition_date=date(2024, 1, 1)),
+        DateField(name="D20240201", acquisition_date=date(2024, 2, 1)),
+    )
+
+
+def test_field_mapping_dialog_manual_temporal_mode_can_use_custom_field(layer):
+    dialog = FieldMappingDialog(layer)
+
+    _set_temporal_mode(dialog, "manual")
+    _set_temporal_checked(dialog, "D20240101", False)
+    _set_temporal_checked(dialog, "D20240201", False)
+    _set_temporal_checked(dialog, "VEL_CUSTOM", True)
+    _set_temporal_date(dialog, "VEL_CUSTOM", QDate(2024, 3, 15))
+
+    mapping = dialog.field_mapping()
+
+    assert mapping.date_fields == (
+        DateField(name="VEL_CUSTOM", acquisition_date=date(2024, 3, 15)),
+    )
+
+
+def test_field_mapping_dialog_restores_manual_date_fields(layer):
+    initial_mapping = LayerFieldMapping(
+        date_fields=(
+            DateField(name="D20240201", acquisition_date=date(2024, 2, 1)),
+            DateField(name="CODE_CUSTOM", acquisition_date=date(2024, 3, 1)),
+        )
+    )
+
+    dialog = FieldMappingDialog(layer, initial_mapping=initial_mapping)
+    mapping = dialog.field_mapping()
+
+    assert dialog.temporal_mode_combo.currentData() == "manual"
+    assert mapping.date_fields == (
+        DateField(name="D20240201", acquisition_date=date(2024, 2, 1)),
+        DateField(name="CODE_CUSTOM", acquisition_date=date(2024, 3, 1)),
+    )

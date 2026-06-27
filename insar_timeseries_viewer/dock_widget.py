@@ -1080,6 +1080,9 @@ class TimeSeriesDockWidget(QDockWidget):
         if layer is None:
             layer_id = self._selected_layer_id()
             layer = self.project.mapLayer(layer_id) if layer_id else None
+        if layer is None:
+            active_layer = self.iface.activeLayer()
+            layer = active_layer if self._is_point_vector_layer(active_layer) else None
 
         if not self._is_point_vector_layer(layer):
             QMessageBox.warning(

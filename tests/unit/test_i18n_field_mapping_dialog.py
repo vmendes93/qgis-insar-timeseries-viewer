@@ -62,3 +62,25 @@ def test_temporal_summary_strings_translate_to_english():
         "First: D20190621, D20190702, D20190724. "
         "Last: D20211206, D20211217, D20211230."
     )
+
+
+def test_manual_temporal_field_dialog_strings_translate_to_english():
+    initialize_locale("en", log=False)
+
+    assert tr("Modo dos campos temporais:") == "Temporal field mode:"
+    assert (
+        tr("Automático: detectar DYYYYMMDD")
+        == "Automatic: detect DYYYYMMDD"
+    )
+    assert tr("Manual: usar tabela abaixo") == "Manual: use table below"
+    assert tr("Usar") == "Use"
+    assert tr("Campo") == "Field"
+    assert tr("Data") == "Date"
+    assert (
+        tr(
+            "No modo manual, marque os campos temporais e ajuste suas datas. "
+            "No modo automático, o leitor usa campos DYYYYMMDD."
+        )
+        == "In manual mode, check temporal fields and adjust their dates. "
+        "In automatic mode, the reader uses DYYYYMMDD fields."
+    )
