@@ -58,9 +58,19 @@ def render_time_series(
         axes.axhline(0.0, linewidth=0.8, linestyle="--", color="0.35", zorder=0.4)
 
     if len(series_list) == 1:
-        axes.set_title(f"{series_list[0].identifier} — {component_label}")
+        axes.set_title(
+            _single_series_title(series_list[0], component_label),
+            loc="left",
+            fontsize="medium",
+        )
     else:
-        axes.set_title(tr("{count} séries — {component}", count=len(series_list), component=component_label))
+        axes.set_title(
+            tr(
+                "{count} séries — {component}",
+                count=len(series_list),
+                component=component_label,
+            )
+        )
 
     _decorate_axis(
         axes,
@@ -389,6 +399,31 @@ def render_message(figure, message: str) -> None:
         transform=axes.transAxes,
         wrap=True,
     )
+
+
+def _single_series_title(series, component_label: str) -> str:
+    parts = [
+        tr("CODE: {identifier}", identifier=series.identifier),
+        tr("VEL: {value}", value=_plot_number(series.velocity)),
+        tr(
+            "Cumulative Displacement: {value}",
+            value=_plot_number(series.cumulative_displacement),
+        ),
+        tr("V_STDEV: {value}", value=_plot_number(series.velocity_std)),
+    ]
+    return f"{' - '.join(parts)}\\n{component_label}"
+
+
+def _plot_number(value) -> str:
+    if value is None:
+        return "—"
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return "—"
+    if not math.isfinite(number):
+        return "—"
+    return f"{number:.1f}"
 
 
 def _plot_one_series(

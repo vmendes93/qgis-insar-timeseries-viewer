@@ -3185,6 +3185,7 @@ class TimeSeriesDockWidget(QDockWidget):
                 },
                 zorder=20,
             )
+            self._configure_hover_annotation_layout(annotation)
             axes._insar_hover_annotation = annotation
 
         item_date = metadata["dates"][index]
@@ -3206,10 +3207,57 @@ class TimeSeriesDockWidget(QDockWidget):
             if other is not None and other is not annotation:
                 other.set_visible(False)
 
+        placement = self._hover_annotation_placement(axes, event)
+        xytext, horizontal_alignment, vertical_alignment = placement
+        hover_key = (id(line), index, tuple(xytext), tuple(text_parts))
+
+        if (
+            getattr(axes, "_insar_hover_key", None) == hover_key and
+            annotation.get_visible()
+        ):
+            return
+
+        axes._insar_hover_key = hover_key
         annotation.xy = xy
+        annotation.set_position(xytext)
+        annotation.set_ha(horizontal_alignment)
+        annotation.set_va(vertical_alignment)
         annotation.set_text("\n".join(text_parts))
         annotation.set_visible(True)
         self.canvas.draw_idle()
+
+
+    def _hover_annotation_placement(self, axes, event):
+        bbox = axes.bbox
+        x_mid = bbox.x0 + bbox.width * 0.5
+        y_mid = bbox.y0 + bbox.height * 0.5
+
+        if event.x >= x_mid:
+            x_offset = -12
+            horizontal_alignment = "right"
+        else:
+            x_offset = 12
+            horizontal_alignment = "left"
+
+        if event.y >= y_mid:
+            y_offset = -12
+            vertical_alignment = "top"
+        else:
+            y_offset = 12
+            vertical_alignment = "bottom"
+
+        return (x_offset, y_offset), horizontal_alignment, vertical_alignment
+
+    def _configure_hover_annotation_layout(self, annotation) -> None:
+        annotation.set_clip_on(False)
+        try:
+            annotation.set_annotation_clip(False)
+        except AttributeError:
+            pass
+        try:
+            annotation.set_in_layout(False)
+        except AttributeError:
+            pass
 
     def _hide_hover_annotations(self) -> None:
         changed = False
@@ -3217,6 +3265,7 @@ class TimeSeriesDockWidget(QDockWidget):
             annotation = getattr(axes, "_insar_hover_annotation", None)
             if annotation is not None and annotation.get_visible():
                 annotation.set_visible(False)
+                axes._insar_hover_key = None
                 changed = True
         if changed:
             self.canvas.draw_idle()
