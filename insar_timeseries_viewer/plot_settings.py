@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from .plot_presets import DEFAULT_PRESET_ID, KNOWN_PRESET_IDS
+
 
 PROJECT_SCOPE = "VisualizadorSeriesTemporais"
 PROJECT_PREFIX = "/plot"
@@ -16,6 +18,7 @@ PROJECT_PREFIX = "/plot"
 class PlotSettings:
     """Opções usadas pelo renderizador e pela interação do gráfico."""
 
+    plot_preset: str = DEFAULT_PRESET_ID
     display_mode: str = "single"
     show_lines: bool = True
     show_markers: bool = True
@@ -72,6 +75,8 @@ class PlotSettings:
 
     def normalized(self) -> "PlotSettings":
         """Retorna a própria instância após normalizar opções simples."""
+        if self.plot_preset not in KNOWN_PRESET_IDS:
+            self.plot_preset = DEFAULT_PRESET_ID
         if self.display_mode not in {
             "single",
             "overlay",
@@ -117,6 +122,7 @@ class PlotSettings:
         """Lê configurações do projeto atual, usando padrões quando ausentes."""
         defaults = cls()
         settings = cls(
+            plot_preset=_read_text(project, "plot_preset", defaults.plot_preset),
             display_mode=_read_text(project, "display_mode", defaults.display_mode),
             show_lines=_read_bool(project, "show_lines", defaults.show_lines),
             show_markers=_read_bool(project, "show_markers", defaults.show_markers),
@@ -264,6 +270,7 @@ class PlotSettings:
             _write_double(project, key, getattr(self, key))
 
         for key in (
+            "plot_preset",
             "display_mode",
             "trendline_scope",
             "horizontal_grid_style",
