@@ -1,3 +1,4 @@
+from insar_timeseries_viewer.plot_presets import DEFAULT_PRESET_ID
 from insar_timeseries_viewer.plot_settings import PlotSettings
 
 
@@ -5,10 +6,12 @@ def test_defaults_are_public_safe():
     settings = PlotSettings()
     assert settings.watermark_export is False
     assert settings.watermark_preview is False
+    assert settings.plot_preset == DEFAULT_PRESET_ID
 
 
 def test_normalization_clamps_invalid_values():
     settings = PlotSettings(
+        plot_preset="invalid",
         display_mode="invalid",
         show_lines=False,
         show_markers=False,
@@ -19,6 +22,7 @@ def test_normalization_clamps_invalid_values():
         watermark_position="somewhere",
         watermark_opacity=0,
     ).normalized()
+    assert settings.plot_preset == DEFAULT_PRESET_ID
     assert settings.display_mode == "single"
     assert settings.show_markers is True
     assert settings.line_width == 10.0

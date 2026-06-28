@@ -96,6 +96,11 @@ from .plot_controller import (
     render_separate_time_series,
     render_time_series,
 )
+from .plot_presets import (
+    CUSTOM_PRESET_ID,
+    apply_plot_preset,
+    available_plot_presets,
+)
 from .plot_settings import PlotSettings, PROJECT_SCOPE
 from .additional_properties import (
     property_field_candidates,
@@ -585,6 +590,24 @@ class TimeSeriesDockWidget(QDockWidget):
         )
         polygon_mean_layout.addWidget(self.polygon_mean_status_label)
         layout.addWidget(polygon_mean_group)
+
+        preset_group = QGroupBox("Preset de gráfico")
+        preset_form = QFormLayout(preset_group)
+        self.plot_preset_combo = QComboBox()
+        for preset in available_plot_presets():
+            self.plot_preset_combo.addItem(preset.label_pt, preset.identifier)
+        self.plot_preset_combo.addItem("Personalizado", CUSTOM_PRESET_ID)
+        self.plot_preset_combo.currentIndexChanged.connect(
+            self._on_plot_preset_changed
+        )
+        preset_form.addRow("Preset:", self.plot_preset_combo)
+        preset_note = QLabel(
+            "Presets alteram apenas aparência e exportação; não modificam camada, "
+            "mapeamento de campos nem seleção atual."
+        )
+        preset_note.setWordWrap(True)
+        preset_form.addRow(preset_note)
+        layout.addWidget(preset_group)
 
         appearance_group = QGroupBox("Aparência das séries")
         appearance_form = QFormLayout(appearance_group)
@@ -3629,6 +3652,9 @@ class TimeSeriesDockWidget(QDockWidget):
     def _sync_controls_from_settings(self) -> None:
         self._updating_controls = True
         try:
+            self.plot_preset_combo.setCurrentIndex(
+                max(0, self.plot_preset_combo.findData(self.settings.plot_preset))
+            )
             self.display_mode_combo.setCurrentIndex(
                 max(0, self.display_mode_combo.findData(self.settings.display_mode))
             )
@@ -3734,6 +3760,43 @@ class TimeSeriesDockWidget(QDockWidget):
         finally:
             self._updating_controls = False
 
+    def _on_plot_preset_changed(self, *_args) -> None:
+        if self._updating_controls:
+            return
+
+        preset_id = self.plot_preset_combo.currentData()
+        if preset_id == CUSTOM_PRESET_ID:
+            self.settings.plot_preset = CUSTOM_PRESET_ID
+            self.settings.save(self.project)
+            return
+
+        try:
+            apply_plot_preset(self.settings, preset_id)
+        except ValueError as exc:
+            self.status_label.setText(str(exc))
+            return
+
+        self.settings.save(self.project)
+        self._sync_controls_from_settings()
+        self._update_from_current_selection()
+        self.status_label.setText(
+            tr("Preset de gráfico aplicado: {name}", name=self.plot_preset_combo.currentText())
+        )
+
+    def _set_plot_preset_custom(self) -> None:
+        if not hasattr(self, "plot_preset_combo"):
+            return
+
+        self.settings.plot_preset = CUSTOM_PRESET_ID
+        index = self.plot_preset_combo.findData(CUSTOM_PRESET_ID)
+        if index < 0:
+            return
+        self.plot_preset_combo.blockSignals(True)
+        try:
+            self.plot_preset_combo.setCurrentIndex(index)
+        finally:
+            self.plot_preset_combo.blockSignals(False)
+
     def _on_plot_settings_changed(self, *_args) -> None:
         if self._updating_controls:
             return
@@ -3750,6 +3813,7 @@ class TimeSeriesDockWidget(QDockWidget):
         finally:
             self._updating_controls = False
 
+        self._set_plot_preset_custom()
         self.settings.display_mode = self.display_mode_combo.currentData()
         self.settings.show_lines = self.show_lines_check.isChecked()
         self.settings.show_markers = self.show_markers_check.isChecked()
