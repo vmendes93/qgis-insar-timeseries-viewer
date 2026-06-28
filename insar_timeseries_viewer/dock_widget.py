@@ -160,6 +160,7 @@ class QLabel(_QtQLabel):
 
 UI_SETTINGS_VISIBLE_KEY = "/ui/settings_panel_visible"
 UI_SETTINGS_WIDTH_KEY = "/ui/settings_panel_width"
+UI_LAYER_REPORT_VISIBLE_KEY = "/ui/layer_report_visible"
 DEFAULT_SETTINGS_PANEL_WIDTH = 330
 ADDITIONAL_FIELDS_PREFIX = "/additional_fields"
 
@@ -182,6 +183,7 @@ class TimeSeriesDockWidget(QDockWidget):
         self._refreshing_layers = False
         self._updating_controls = False
         self._settings_panel_visible = True
+        self._layer_report_visible = False
         self._settings_panel_width = DEFAULT_SETTINGS_PANEL_WIDTH
         self._polygon_capture_tool = None
         self._previous_map_tool = None
@@ -310,6 +312,18 @@ class TimeSeriesDockWidget(QDockWidget):
         self.clear_selection_button.clicked.connect(self._clear_current_selection)
         mode_row.addWidget(self.clear_selection_button)
 
+        self.layer_report_toggle_button = QToolButton()
+        self.layer_report_toggle_button.setText("Mostrar relatório")
+        self.layer_report_toggle_button.setToolTip(
+            "Mostrar ou ocultar o relatório estrutural da camada"
+        )
+        self.layer_report_toggle_button.setCheckable(True)
+        self.layer_report_toggle_button.setChecked(False)
+        self.layer_report_toggle_button.toggled.connect(
+            self._on_layer_report_toggled
+        )
+        mode_row.addWidget(self.layer_report_toggle_button)
+
         self.settings_toggle_button = QToolButton()
         self.settings_toggle_button.setText("Configurações")
         self.settings_toggle_button.setToolTip(
@@ -353,6 +367,7 @@ class TimeSeriesDockWidget(QDockWidget):
         self.layer_report_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
         layer_report_layout.addWidget(self.layer_report_label)
         self._clear_layer_report()
+        self.layer_report_group.setVisible(False)
         parent_layout.addWidget(self.layer_report_group)
 
     def _build_visualization_panel(self) -> None:
@@ -990,6 +1005,47 @@ class TimeSeriesDockWidget(QDockWidget):
             self._settings_panel_visible,
             persist=False,
         )
+        self._layer_report_visible = self.project.readBoolEntry(
+            PROJECT_SCOPE,
+            UI_LAYER_REPORT_VISIBLE_KEY,
+            False,
+        )[0]
+        self._set_layer_report_visible(
+            self._layer_report_visible,
+            persist=False,
+        )
+
+    def _save_layer_report_visible(self, visible: bool) -> None:
+        writer = getattr(self.project, "writeEntryBool", None)
+        if writer is not None:
+            writer(PROJECT_SCOPE, UI_LAYER_REPORT_VISIBLE_KEY, bool(visible))
+        else:
+            self.project.writeEntry(
+                PROJECT_SCOPE,
+                UI_LAYER_REPORT_VISIBLE_KEY,
+                bool(visible),
+            )
+
+    def _on_layer_report_toggled(self, visible: bool) -> None:
+        self._set_layer_report_visible(visible, persist=True)
+
+    def _set_layer_report_visible(
+        self,
+        visible: bool,
+        *,
+        persist: bool,
+    ) -> None:
+        visible = bool(visible)
+        self._layer_report_visible = visible
+        self.layer_report_group.setVisible(visible)
+        self.layer_report_toggle_button.blockSignals(True)
+        self.layer_report_toggle_button.setChecked(visible)
+        self.layer_report_toggle_button.blockSignals(False)
+        self.layer_report_toggle_button.setText(
+            tr("Ocultar relatório") if visible else tr("Mostrar relatório")
+        )
+        if persist:
+            self._save_layer_report_visible(visible)
 
     def _save_settings_panel_visible(self, visible: bool) -> None:
         writer = getattr(self.project, "writeEntryBool", None)
