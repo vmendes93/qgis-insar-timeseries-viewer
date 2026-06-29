@@ -300,6 +300,12 @@ PT_TO_EN = {
     # Plot labels and titles
     "Datas": "Dates",
     "Deslocamento (mm)": "Displacement (mm)",
+    "Deslocamento LOS (mm)": "LOS displacement (mm)",
+    "Deslocamento vertical (mm)": "Vertical displacement (mm)",
+    "Deslocamento leste-oeste (mm)": "East-west displacement (mm)",
+    "Valores positivos: em direção ao satélite": "Positive values: toward satellite",
+    "Negativo: subsidência · Positivo: soerguimento": "Negative: subsidence · Positive: uplift",
+    "Negativo: oeste · Positivo: leste": "Negative: westward · Positive: eastward",
     "Média": "Mean",
     "Média ± 1 desvio-padrão": "Mean ± 1 standard deviation",
     "Trendline": "Trendline",

@@ -21,6 +21,10 @@ from matplotlib.dates import (
 from matplotlib.ticker import MultipleLocator
 
 from .i18n import tr
+from .plot_component_styles import (
+    component_axis_label,
+    style_for_component_label,
+)
 from .plot_settings import PlotSettings
 from .timeseries_statistics import MeanSeriesResult
 
@@ -44,9 +48,10 @@ def render_time_series(
     warnings: list[str] = []
     figure.clear()
     axes = figure.add_subplot(111)
+    component_style = style_for_component_label(component_label)
 
     for index, (series, label) in enumerate(zip(series_list, labels)):
-        color = _series_color(index)
+        color = _series_color(index, base_color=component_style.primary_color)
         _plot_one_series(axes, series, label, settings, color=color)
         if _trendline_applies(settings, index):
             if len(series_list) == 1:
@@ -77,6 +82,7 @@ def render_time_series(
         settings,
         warnings,
         add_x_warnings=True,
+        component_label=component_label,
     )
 
     columns = 2 if len(series_list) >= 8 else 1
@@ -108,11 +114,12 @@ def render_separate_time_series(
         sharex=True,
     )
     axes_list = [row[0] for row in axes_grid]
+    component_style = style_for_component_label(component_label)
 
     for index, (axes, series, label) in enumerate(
         zip(axes_list, series_list, labels)
     ):
-        _plot_one_series(axes, series, label, settings, color="black")
+        _plot_one_series(axes, series, label, settings, color=component_style.primary_color)
         if settings.show_trendline:
             _plot_trendline(
                 axes, series.dates, series.values, settings, label=tr("Trendline")
@@ -150,6 +157,7 @@ def render_mean_time_series(
     warnings: list[str] = []
     figure.clear()
     axes = figure.add_subplot(111)
+    component_style = style_for_component_label(component_label)
 
     if settings.mean_show_individuals:
         for values in result.individual_values:
@@ -174,7 +182,7 @@ def render_mean_time_series(
             result.dates,
             lower,
             upper,
-            color="black",
+            color=component_style.primary_color,
             alpha=0.14,
             label=tr("Média ± 1 desvio-padrão"),
             zorder=2,
@@ -186,7 +194,7 @@ def render_mean_time_series(
         label=tr("Média"),
         linestyle="-" if settings.show_lines else "None",
         marker="o" if settings.show_markers else None,
-        color="black",
+        color=component_style.primary_color,
         markersize=settings.marker_size,
         linewidth=settings.line_width,
         zorder=3,
@@ -215,6 +223,7 @@ def render_mean_time_series(
         settings,
         warnings,
         add_x_warnings=True,
+        component_label=component_label,
     )
 
     _apply_legend(axes, settings)
@@ -232,9 +241,10 @@ def render_polygon_mean_series(
     warnings: list[str] = []
     figure.clear()
     axes = figure.add_subplot(111)
+    component_style = style_for_component_label(component_label)
 
     for index, group in enumerate(groups):
-        color = _series_color(index)
+        color = _series_color(index, base_color=component_style.primary_color)
         _plot_mean_group(axes, group, settings, label=group.label, color=color)
         if _trendline_applies(settings, index):
             trend_label = (
@@ -263,6 +273,7 @@ def render_polygon_mean_series(
         settings,
         warnings,
         add_x_warnings=True,
+        component_label=component_label,
     )
 
     columns = 2 if len(groups) >= 8 else 1
@@ -288,11 +299,12 @@ def render_separate_polygon_mean_series(
         sharex=True,
     )
     axes_list = [row[0] for row in axes_grid]
+    component_style = style_for_component_label(component_label)
     x_start = min(group.result.first_valid_date for group in groups)
     x_end = max(group.result.last_valid_date for group in groups)
 
     for index, (axes, group) in enumerate(zip(axes_list, groups)):
-        _plot_mean_group(axes, group, settings, label=tr("Média"), color="black")
+        _plot_mean_group(axes, group, settings, label=tr("Média"), color=component_style.primary_color)
         if settings.show_trendline:
             _plot_trendline(
                 axes,
@@ -530,6 +542,7 @@ def _decorate_axis(
     warnings: list[str],
     *,
     add_x_warnings: bool,
+    component_label: str = "",
 ) -> None:
     x_start = min(item.first_valid_date for item in all_series)
     x_end = max(item.last_valid_date for item in all_series)
@@ -540,6 +553,7 @@ def _decorate_axis(
         settings,
         warnings,
         add_x_warnings=add_x_warnings,
+        component_label=component_label,
     )
 
 
@@ -551,9 +565,10 @@ def _decorate_axis_for_range(
     warnings: list[str],
     *,
     add_x_warnings: bool,
+    component_label: str = "",
 ) -> None:
     axes.set_xlabel(tr("Datas"))
-    axes.set_ylabel(tr("Deslocamento (mm)"))
+    axes.set_ylabel(component_axis_label(component_label))
     _apply_gridlines(axes, settings)
 
     if settings.x_manual:
@@ -677,9 +692,9 @@ def _tag_hover(line, dates, values, label: str, *, counts=None) -> None:
     }
 
 
-def _series_color(index: int) -> str:
+def _series_color(index: int, *, base_color: str = "black") -> str:
     if index == 0:
-        return "black"
+        return base_color
     colors = rcParams["axes.prop_cycle"].by_key().get("color", ["C0"])
     return colors[(index - 1) % len(colors)]
 
