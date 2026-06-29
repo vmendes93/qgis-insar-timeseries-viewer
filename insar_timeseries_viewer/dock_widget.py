@@ -132,6 +132,7 @@ from .polygon_means import (
     calculate_polygon_mean_groups,
     polygon_features_for_scope,
 )
+from .polygon_name_fields import suggest_name_field
 from .spatial_selection import (
     PointClickTool,
     PolygonCaptureTool,
@@ -1728,32 +1729,10 @@ class TimeSeriesDockWidget(QDockWidget):
             for field_name in field_names:
                 self.polygon_name_field_combo.addItem(field_name, field_name)
 
-        target = previous if previous in field_names else self._suggest_name_field(field_names)
+        target = previous if previous in field_names else suggest_name_field(field_names)
         index = self.polygon_name_field_combo.findData(target)
         self.polygon_name_field_combo.setCurrentIndex(index if index >= 0 else 0)
         self.polygon_name_field_combo.blockSignals(False)
-
-    @staticmethod
-    def _suggest_name_field(field_names: Sequence[str]):
-        priorities = (
-            "nome",
-            "name",
-            "label",
-            "titulo",
-            "title",
-            "setor",
-            "area",
-            "zona",
-        )
-        normalized = {name.casefold(): name for name in field_names}
-        for candidate in priorities:
-            if candidate in normalized:
-                return normalized[candidate]
-        for candidate in priorities:
-            for field_name in field_names:
-                if candidate in field_name.casefold():
-                    return field_name
-        return None
 
     def _update_area_control_states(self, *_args) -> None:
         target_available = (
