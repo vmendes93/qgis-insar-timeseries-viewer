@@ -3,9 +3,9 @@
 
 """Runtime internationalization for the plugin.
 
-The plugin keeps Portuguese source messages for backward compatibility and
-translates them to English when the QGIS interface locale is not Brazilian
-Portuguese. English is therefore the guaranteed fallback language.
+The plugin accepts Portuguese source messages for backward compatibility and
+also supports English source messages for new UI strings. English is the
+guaranteed fallback language.
 """
 
 from __future__ import annotations
@@ -86,6 +86,9 @@ PT_TO_EN = {
     "Atualiza o resumo estrutural da camada InSAR ativa": "Refreshes the structural summary of the active InSAR layer",
     "Copiar relatório": "Copy report",
     "Copia o relatório da camada para a área de transferência": "Copies the layer report to the clipboard",
+    "Mostrar relatório": "Show report",
+    "Ocultar relatório": "Hide report",
+    "Mostrar ou ocultar o relatório estrutural da camada": "Show or hide the active layer structural report",
     "Nenhuma camada ativa.": "No active layer.",
     "Nenhum relatório de camada disponível para copiar.": "No layer report is available to copy.",
     "Relatório da camada copiado para a área de transferência.": "Layer report copied to the clipboard.",
@@ -430,6 +433,9 @@ PT_TO_EN = {
 }
 
 
+EN_TO_PT = {english: portuguese for portuguese, english in PT_TO_EN.items()}
+
+
 def normalize_locale(value: object) -> str:
     text = str(value or "").strip().replace("-", "_")
     lower = text.casefold()
@@ -475,14 +481,17 @@ def language_name() -> str:
     return "Português (Brasil)" if _active_locale == _PT_BR else "English"
 
 
-def tr(source_pt: object, **values) -> str:
-    text = str(source_pt)
+def tr(source_text: object, **values) -> str:
+    text = str(source_text)
     if _active_locale == _PT_BR:
-        translated = text
+        translated = EN_TO_PT.get(text, text)
     else:
         translated = PT_TO_EN.get(text)
         if translated is None:
-            translated = _translate_dynamic_to_english(text)
+            if text in EN_TO_PT:
+                translated = text
+            else:
+                translated = _translate_dynamic_to_english(text)
     if values:
         try:
             translated = translated.format(**values)

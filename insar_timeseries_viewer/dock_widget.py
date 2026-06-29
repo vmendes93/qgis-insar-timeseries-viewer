@@ -313,9 +313,9 @@ class TimeSeriesDockWidget(QDockWidget):
         mode_row.addWidget(self.clear_selection_button)
 
         self.layer_report_toggle_button = QToolButton()
-        self.layer_report_toggle_button.setText("Mostrar relatório")
+        self.layer_report_toggle_button.setText(tr("Show report"))
         self.layer_report_toggle_button.setToolTip(
-            "Mostrar ou ocultar o relatório estrutural da camada"
+            tr("Show or hide the active layer structural report")
         )
         self.layer_report_toggle_button.setCheckable(True)
         self.layer_report_toggle_button.setChecked(False)
@@ -1042,7 +1042,7 @@ class TimeSeriesDockWidget(QDockWidget):
         self.layer_report_toggle_button.setChecked(visible)
         self.layer_report_toggle_button.blockSignals(False)
         self.layer_report_toggle_button.setText(
-            tr("Ocultar relatório") if visible else tr("Mostrar relatório")
+            tr("Hide report") if visible else tr("Show report")
         )
         if persist:
             self._save_layer_report_visible(visible)
