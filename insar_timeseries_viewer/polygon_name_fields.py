@@ -27,11 +27,7 @@ NAME_FIELD_PRIORITIES: tuple[str, ...] = (
 
 
 def suggest_name_field(field_names: Sequence[str]) -> str | None:
-    """Suggest the most likely polygon name field.
-
-    Exact matches have priority over partial matches. Field names keep their
-    original casing in the returned value.
-    """
+    """Suggest the most likely polygon name field."""
 
     normalized = {str(name).casefold(): str(name) for name in field_names}
     for candidate in NAME_FIELD_PRIORITIES:
