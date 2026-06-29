@@ -7,11 +7,11 @@ from insar_timeseries_viewer.plot_component_styles import (
 )
 
 
-def test_component_key_styles_are_distinct_and_generic_fallback():
-    assert style_for_component_key("los").primary_color != "black"
-    assert style_for_component_key("vertical").primary_color != "black"
-    assert style_for_component_key("east_west").primary_color != "black"
-    assert style_for_component_key("does_not_exist").primary_color == "black"
+def test_component_key_styles_have_generic_fallback():
+    assert style_for_component_key("los").component_key == "los"
+    assert style_for_component_key("vertical").component_key == "vertical"
+    assert style_for_component_key("east_west").component_key == "east_west"
+    assert style_for_component_key("does_not_exist").component_key == "unknown"
 
 
 def test_component_label_inference_handles_los_orbit_suffixes():

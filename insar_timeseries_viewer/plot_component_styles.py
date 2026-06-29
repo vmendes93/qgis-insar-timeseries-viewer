@@ -1,9 +1,9 @@
 # SPDX-FileCopyrightText: 2026 Vinicius Mendes
 # SPDX-License-Identifier: GPL-2.0-or-later
 
-"""Product/component-specific plot styles.
+"""Product/component-specific plot labels.
 
-This module centralizes public, generic visual defaults for InSAR components.
+This module centralizes public, generic plot text defaults for InSAR components.
 It intentionally does not contain organization-specific branding.
 """
 
@@ -16,17 +16,15 @@ from .i18n import tr
 
 @dataclass(frozen=True)
 class PlotComponentStyle:
-    """Visual style for a component family."""
+    """Textual plot style for a component family."""
 
     component_key: str
-    primary_color: str
     y_axis_label_source: str
     sign_note_source: str
 
 
 _GENERIC_STYLE = PlotComponentStyle(
     component_key="unknown",
-    primary_color="black",
     y_axis_label_source="Displacement (mm)",
     sign_note_source="",
 )
@@ -34,19 +32,16 @@ _GENERIC_STYLE = PlotComponentStyle(
 _COMPONENT_STYLES: dict[str, PlotComponentStyle] = {
     "los": PlotComponentStyle(
         component_key="los",
-        primary_color="#1f77b4",
         y_axis_label_source="LOS displacement (mm)",
         sign_note_source="Positive values: toward satellite",
     ),
     "vertical": PlotComponentStyle(
         component_key="vertical",
-        primary_color="#2ca02c",
         y_axis_label_source="Vertical displacement (mm)",
         sign_note_source="Negative: subsidence · Positive: uplift",
     ),
     "east_west": PlotComponentStyle(
         component_key="east_west",
-        primary_color="#9467bd",
         y_axis_label_source="East-west displacement (mm)",
         sign_note_source="Negative: westward · Positive: eastward",
     ),
