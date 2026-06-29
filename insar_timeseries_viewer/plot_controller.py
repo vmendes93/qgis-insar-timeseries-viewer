@@ -65,7 +65,7 @@ def render_time_series(
         axes.axhline(0.0, linewidth=0.8, linestyle="--", color="0.35", zorder=0.4)
 
     if len(series_list) == 1:
-        axes.set_title(f"{series_list[0].identifier} — {component_label}")
+        _apply_single_series_header(axes, series_list[0], component_label)
     else:
         axes.set_title(
             tr(
@@ -414,6 +414,54 @@ def render_message(figure, message: str) -> None:
         transform=axes.transAxes,
         wrap=True,
     )
+
+
+def _apply_single_series_header(axes, series, component_label: str) -> None:
+    axes.set_title(
+        str(series.identifier),
+        loc="left",
+        fontsize="large",
+        fontweight="bold",
+        pad=24,
+    )
+    axes.text(
+        0.0,
+        1.015,
+        _single_series_subtitle(series, component_label),
+        transform=axes.transAxes,
+        horizontalalignment="left",
+        verticalalignment="bottom",
+        fontsize="small",
+        color="0.35",
+        clip_on=False,
+    )
+
+
+def _single_series_subtitle(series, component_label: str) -> str:
+    items = [
+        f"{tr('Component')}: {component_label}",
+        f"VEL: {_format_header_metric(series.velocity, 'mm/yr')}",
+        (
+            f"{tr('Cumulative displacement')}: "
+            f"{_format_header_metric(series.cumulative_displacement, 'mm')}"
+        ),
+        f"V_STDEV: {_format_header_metric(series.velocity_std, 'mm/yr')}",
+        (
+            f"{tr('Period')}: "
+            f"{series.first_valid_date:%d/%m/%Y}–{series.last_valid_date:%d/%m/%Y}"
+        ),
+    ]
+    return " | ".join(items)
+
+
+def _format_header_metric(value, unit_source: str) -> str:
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return "—"
+    if not math.isfinite(numeric):
+        return "—"
+    return f"{numeric:.1f} {tr(unit_source)}"
 
 
 def _plot_one_series(
