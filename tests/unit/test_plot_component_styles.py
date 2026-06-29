@@ -43,3 +43,11 @@ def test_component_axis_labels_translate_to_pt_br():
         assert "subsidência" in component_sign_note("VERT")
     finally:
         initialize_locale("en", log=False)
+
+
+def test_component_sign_notes_default_to_english():
+    initialize_locale("en", log=False)
+    assert component_sign_note("LOS") == "Positive values: toward satellite"
+    assert component_sign_note("VERT") == "Negative: subsidence · Positive: uplift"
+    assert component_sign_note("EW") == "Negative: westward · Positive: eastward"
+    assert component_sign_note("unknown") == ""

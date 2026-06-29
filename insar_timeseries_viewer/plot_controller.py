@@ -23,6 +23,7 @@ from matplotlib.ticker import MultipleLocator
 from .i18n import tr
 from .plot_component_styles import (
     component_axis_label,
+    component_sign_note,
     style_for_component_label,
 )
 from .plot_settings import PlotSettings
@@ -140,6 +141,8 @@ def render_separate_time_series(
             settings,
             warnings,
             add_x_warnings=index == 0,
+            component_label=component_label,
+            show_component_note=index == len(axes_list) - 1,
         )
         axes.tick_params(axis="x", labelbottom=True)
         _apply_legend(axes, settings)
@@ -337,6 +340,8 @@ def render_separate_polygon_mean_series(
             settings,
             warnings,
             add_x_warnings=index == 0,
+            component_label=component_label,
+            show_component_note=index == len(axes_list) - 1,
         )
         axes.tick_params(axis="x", labelbottom=True)
         if index < len(groups) - 1:
@@ -543,6 +548,7 @@ def _decorate_axis(
     *,
     add_x_warnings: bool,
     component_label: str = "",
+    show_component_note: bool = True,
 ) -> None:
     x_start = min(item.first_valid_date for item in all_series)
     x_end = max(item.last_valid_date for item in all_series)
@@ -554,6 +560,7 @@ def _decorate_axis(
         warnings,
         add_x_warnings=add_x_warnings,
         component_label=component_label,
+        show_component_note=show_component_note,
     )
 
 
@@ -566,9 +573,15 @@ def _decorate_axis_for_range(
     *,
     add_x_warnings: bool,
     component_label: str = "",
+    show_component_note: bool = True,
 ) -> None:
     axes.set_xlabel(tr("Datas"))
     axes.set_ylabel(component_axis_label(component_label))
+    _apply_component_sign_note(
+        axes,
+        component_label,
+        visible=show_component_note,
+    )
     _apply_gridlines(axes, settings)
 
     if settings.x_manual:
@@ -627,6 +640,36 @@ def _decorate_axis_for_range(
         add_warning=add_x_warnings,
     )
     axes.margins(x=0.02, y=0.10)
+
+
+def _apply_component_sign_note(
+    axes,
+    component_label: str,
+    *,
+    visible: bool,
+) -> None:
+    if not visible:
+        return
+    note = component_sign_note(component_label)
+    if not note:
+        return
+    axes.text(
+        0.012,
+        0.025,
+        note,
+        transform=axes.transAxes,
+        horizontalalignment="left",
+        verticalalignment="bottom",
+        fontsize="x-small",
+        color="0.35",
+        bbox={
+            "facecolor": "white",
+            "edgecolor": "none",
+            "alpha": 0.72,
+            "pad": 2.0,
+        },
+        zorder=5,
+    )
 
 
 def _apply_gridlines(axes, settings: PlotSettings) -> None:
