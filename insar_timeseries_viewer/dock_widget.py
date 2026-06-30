@@ -8,9 +8,11 @@ from __future__ import annotations
 from collections import Counter
 from datetime import date
 import html
+import logging
 import json
 import math
 from pathlib import Path
+import time
 from typing import Optional, Sequence
 
 import numpy as np
@@ -44,9 +46,11 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 from qgis.core import (
+    Qgis,
     QgsCoordinateTransform,
     QgsCsException,
     QgsGeometry,
+    QgsMessageLog,
     QgsProject,
     QgsRectangle,
     QgsVectorLayer,
@@ -164,6 +168,25 @@ UI_SETTINGS_WIDTH_KEY = "/ui/settings_panel_width"
 UI_LAYER_REPORT_VISIBLE_KEY = "/ui/layer_report_visible"
 DEFAULT_SETTINGS_PANEL_WIDTH = 330
 ADDITIONAL_FIELDS_PREFIX = "/additional_fields"
+
+LOGGER = logging.getLogger(__name__)
+PERFORMANCE_LOG_CHANNEL = "InSAR Time Series Viewer"
+
+
+def _log_performance(event: str, elapsed_seconds: float, **context) -> None:
+    """Log coarse performance timings for interactive diagnostics."""
+
+    details = " | ".join(
+        f"{key}={value}" for key, value in context.items() if value is not None
+    )
+    message = f"{event}: {elapsed_seconds:.3f}s"
+    if details:
+        message = f"{message} | {details}"
+    LOGGER.info(message)
+    try:
+        QgsMessageLog.logMessage(message, PERFORMANCE_LOG_CHANNEL, Qgis.Info)
+    except (RuntimeError, AttributeError):
+        pass
 
 
 class TimeSeriesDockWidget(QDockWidget):
@@ -1773,6 +1796,7 @@ class TimeSeriesDockWidget(QDockWidget):
         )
 
     def _calculate_polygon_means(self, *_args) -> None:
+        start_time = time.perf_counter()
         point_layer = self.current_layer
         point_schema = self.current_schema
         polygon_layer_id = self.polygon_layer_combo.currentData()
@@ -1838,6 +1862,13 @@ class TimeSeriesDockWidget(QDockWidget):
             return
 
         self._polygon_mean_batch = batch
+        _log_performance(
+            "polygon mean calculation",
+            time.perf_counter() - start_time,
+            groups=batch.group_count,
+            requested_polygons=batch.requested_polygon_count,
+            point_memberships=sum(group.point_count for group in batch.groups),
+        )
         target_mode = (
             "polygon_means_separate"
             if self.polygon_mean_view_combo.currentData() == "separate"
@@ -2642,6 +2673,7 @@ class TimeSeriesDockWidget(QDockWidget):
         self.status_label.setText(" · ".join(status_parts) + ".")
 
     def _display_polygon_mean_batch(self) -> None:
+        start_time = time.perf_counter()
         batch = self._polygon_mean_batch
         if batch is None or not batch.groups:
             self.selection_count_label.setText("0 médias poligonais")
@@ -2690,6 +2722,13 @@ class TimeSeriesDockWidget(QDockWidget):
         self._update_export_control_states()
         self._fill_polygon_mean_info(groups, component_label)
         self._update_additional_properties_info()
+        _log_performance(
+            "preview polygon means render",
+            time.perf_counter() - start_time,
+            mode=self.settings.display_mode,
+            groups=len(groups),
+            point_memberships=sum(group.point_count for group in groups),
+        )
         QTimer.singleShot(
             0,
             lambda: self.chart_scroll_area.verticalScrollBar().setValue(0),
@@ -2765,6 +2804,7 @@ class TimeSeriesDockWidget(QDockWidget):
 
     # --------------------------------------------------------------- chart
     def _display_series_list(self, series_list: Sequence[TimeSeriesData]) -> list[str]:
+        start_time = time.perf_counter()
         component_label = self._effective_component_label()
         labels = self._unique_legend_labels(series_list)
         separate = self.settings.display_mode == "separate"
@@ -2810,6 +2850,15 @@ class TimeSeriesDockWidget(QDockWidget):
             self._fill_multiple_info(series_list, component_label)
         self._update_selection_action_states()
         self._update_additional_properties_info()
+        _log_performance(
+            "preview series render",
+            time.perf_counter() - start_time,
+            mode=self.settings.display_mode,
+            series=len(series_list),
+            acquisitions=sum(
+                getattr(series, "acquisition_count", 0) for series in series_list
+            ),
+        )
         return plot_warnings
 
     def _display_mean_result(
@@ -2817,6 +2866,7 @@ class TimeSeriesDockWidget(QDockWidget):
         result: MeanSeriesResult,
         source_series: Sequence[TimeSeriesData],
     ) -> list[str]:
+        start_time = time.perf_counter()
         component_label = self._effective_component_label()
         self._set_chart_height(1, separate=False)
         plot_warnings = render_mean_time_series(
@@ -2841,6 +2891,12 @@ class TimeSeriesDockWidget(QDockWidget):
         QTimer.singleShot(
             0,
             lambda: self.chart_scroll_area.verticalScrollBar().setValue(0),
+        )
+        _log_performance(
+            "preview mean render",
+            time.perf_counter() - start_time,
+            source_series=len(source_series),
+            acquisitions=getattr(result, "acquisition_count", None),
         )
         return plot_warnings
 
@@ -3003,6 +3059,7 @@ class TimeSeriesDockWidget(QDockWidget):
             return
 
         target = ensure_extension(Path(filename), file_format)
+        start_time = time.perf_counter()
         try:
             figure = self._render_current_export_figure()
             self._save_export_figure(figure, target)
@@ -3015,6 +3072,12 @@ class TimeSeriesDockWidget(QDockWidget):
             return
 
         self._remember_export_directory(target.parent)
+        _log_performance(
+            "current graph export",
+            time.perf_counter() - start_time,
+            format=file_format,
+            path=target,
+        )
         self.status_label.setText(tr("Gráfico exportado para {path}.", path=target))
         QMessageBox.information(
             self,
@@ -3124,6 +3187,7 @@ class TimeSeriesDockWidget(QDockWidget):
         if not folder:
             return
         destination = Path(folder)
+        start_time = time.perf_counter()
         file_format = self.settings.export_format
         saved_paths = []
         errors = []
@@ -3168,6 +3232,14 @@ class TimeSeriesDockWidget(QDockWidget):
                         f"{group.label}: {type(exc).__name__}: {exc}"
                     )
 
+        _log_performance(
+            "batch graph export",
+            time.perf_counter() - start_time,
+            format=file_format,
+            saved=len(saved_paths),
+            failures=len(errors),
+            destination=destination,
+        )
         self._remember_export_directory(destination)
         if saved_paths:
             message = tr("{count} arquivo(s) salvo(s) em:\n{destination}", count=len(saved_paths), destination=destination)
