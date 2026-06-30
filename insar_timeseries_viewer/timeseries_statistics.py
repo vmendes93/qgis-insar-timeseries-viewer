@@ -12,8 +12,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 import math
-from statistics import fmean, pstdev
+from statistics import fmean
 from typing import Optional, Sequence, Tuple
+
+import numpy as np
+
 from .i18n import tr
 
 
@@ -76,17 +79,8 @@ def calculate_mean_series(
 ) -> MeanSeriesResult:
     """Alinha e calcula a média das séries aquisição por aquisição.
 
-    Quando ``common_interval`` é verdadeiro, a média só existe nas datas em
-    que todas as séries possuem valor válido. As datas internas sem cobertura
-    completa permanecem como lacunas para não sugerir continuidade artificial.
-
-    Quando é falso, a média usa os valores disponíveis em cada aquisição, mas
-    exige no mínimo dois pontos. ``counts`` registra o N efetivamente usado.
-
-    Com ``reference_zero``, cada série é deslocada pelo seu valor de referência
-    antes da média. No intervalo comum, todas usam a primeira aquisição válida
-    comum. No modo por disponibilidade, cada série usa sua primeira aquisição
-    válida própria.
+    A implementação usa NumPy para reduzir o custo de médias grandes, mantendo
+    a mesma interface pública e os mesmos campos do resultado.
     """
 
     minimum_series = max(int(minimum_series), 1)
@@ -97,94 +91,73 @@ def calculate_mean_series(
             tr("Selecione pelo menos {count} pontos para calcular a média.", count=minimum_series)
         )
 
-    value_maps = []
-    complete_date_set = set()
-    for series in series_list:
-        mapping = {}
-        for acquisition_date, raw_value in zip(series.dates, series.values):
-            complete_date_set.add(acquisition_date)
-            value = _finite_float_or_none(raw_value)
-            if value is not None:
-                mapping[acquisition_date] = value
-        if not mapping:
-            raise MeanSeriesError(
-                tr("A série {identifier} não possui observações válidas.", identifier=getattr(series, "identifier", tr("sem identificação")))
-            )
-        value_maps.append(mapping)
-
-    ordered_dates = sorted(complete_date_set)
+    ordered_dates = _ordered_dates_for_series(series_list)
     if not ordered_dates:
         raise MeanSeriesError(tr("As séries selecionadas não possuem datas de aquisição."))
 
-    if common_interval:
-        fully_covered_dates = [
-            item_date
-            for item_date in ordered_dates
-            if all(item_date in mapping for mapping in value_maps)
-        ]
-        if not fully_covered_dates:
-            raise MeanSeriesError(
-                tr("Não existe nenhuma aquisição válida comum a todos os pontos selecionados.")
-            )
-        range_start = fully_covered_dates[0]
-        range_end = fully_covered_dates[-1]
-        result_dates = [
-            item_date
-            for item_date in ordered_dates
-            if range_start <= item_date <= range_end
-        ]
-        baseline_dates = [range_start] * len(value_maps)
-    else:
-        range_start = min(min(mapping) for mapping in value_maps)
-        range_end = max(max(mapping) for mapping in value_maps)
-        result_dates = [
-            item_date
-            for item_date in ordered_dates
-            if range_start <= item_date <= range_end
-        ]
-        baseline_dates = [min(mapping) for mapping in value_maps]
+    value_matrix = _series_value_matrix(series_list, ordered_dates)
 
-    baselines = []
-    for mapping, baseline_date in zip(value_maps, baseline_dates):
-        baselines.append(mapping[baseline_date] if reference_zero else 0.0)
-
-    individual_rows = []
-    for mapping, baseline in zip(value_maps, baselines):
-        individual_rows.append(
-            tuple(
-                mapping[item_date] - baseline if item_date in mapping else None
-                for item_date in result_dates
+    valid_by_series = ~np.isnan(value_matrix)
+    if not np.all(valid_by_series.any(axis=1)):
+        invalid_index = int(np.flatnonzero(~valid_by_series.any(axis=1))[0])
+        invalid_series = series_list[invalid_index]
+        raise MeanSeriesError(
+            tr(
+                "A série {identifier} não possui observações válidas.",
+                identifier=getattr(
+                    invalid_series,
+                    "identifier",
+                    tr("sem identificação"),
+                ),
             )
         )
 
-    mean_values = []
-    std_values = []
-    counts = []
+    if common_interval:
+        fully_covered_columns = np.flatnonzero(valid_by_series.all(axis=0))
+        if fully_covered_columns.size == 0:
+            raise MeanSeriesError(
+                tr("Não existe nenhuma aquisição válida comum a todos os pontos selecionados.")
+            )
+        first_column = int(fully_covered_columns[0])
+        last_column = int(fully_covered_columns[-1])
+        baseline_columns = np.full(len(series_list), first_column, dtype=int)
+    else:
+        first_valid_columns = np.argmax(valid_by_series, axis=1)
+        last_valid_columns = (
+            value_matrix.shape[1] - 1 - np.argmax(valid_by_series[:, ::-1], axis=1)
+        )
+        first_column = int(first_valid_columns.min())
+        last_column = int(last_valid_columns.max())
+        baseline_columns = first_valid_columns.astype(int)
+
+    result_dates = tuple(ordered_dates[first_column: last_column + 1])
+    result_values = value_matrix[:, first_column: last_column + 1].copy()
+
+    if reference_zero:
+        baselines = value_matrix[np.arange(len(series_list)), baseline_columns]
+        result_values = result_values - baselines[:, np.newaxis]
+
+    counts_array = np.sum(~np.isnan(result_values), axis=0)
     required_count = (
         len(series_list) if common_interval else min(2, len(series_list))
     )
+    valid_columns = counts_array >= required_count
 
-    for column_index, _item_date in enumerate(result_dates):
-        column_values = [
-            row[column_index]
-            for row in individual_rows
-            if row[column_index] is not None
-        ]
-        count = len(column_values)
-        counts.append(count)
-        if count < required_count:
-            mean_values.append(None)
-            std_values.append(None)
-            continue
+    mean_array = np.full(result_values.shape[1], np.nan, dtype=float)
+    std_array = np.full(result_values.shape[1], np.nan, dtype=float)
+    if np.any(valid_columns):
+        with np.errstate(invalid="ignore"):
+            mean_array[valid_columns] = np.nanmean(
+                result_values[:, valid_columns],
+                axis=0,
+            )
+            std_array[valid_columns] = np.nanstd(
+                result_values[:, valid_columns],
+                axis=0,
+            )
 
-        mean_values.append(fmean(column_values))
-        # Dispersão populacional dos pontos efetivamente selecionados na data.
-        std_values.append(pstdev(column_values) if count >= 2 else 0.0)
-
-    valid_indexes = [
-        index for index, value in enumerate(mean_values) if value is not None
-    ]
-    if not valid_indexes:
+    valid_indexes = np.flatnonzero(~np.isnan(mean_array))
+    if valid_indexes.size == 0:
         if common_interval:
             raise MeanSeriesError(
                 tr("Não foi possível calcular a média no intervalo comum selecionado.")
@@ -193,8 +166,17 @@ def calculate_mean_series(
             tr("Não há aquisições com pelo menos dois pontos válidos para calcular a média.")
         )
 
-    first_index = valid_indexes[0]
-    last_index = valid_indexes[-1]
+    mean_values = tuple(_none_if_nan(value) for value in mean_array)
+    std_values = tuple(_none_if_nan(value) for value in std_array)
+    counts = tuple(int(value) for value in counts_array)
+    individual_rows = tuple(
+        tuple(_none_if_nan(value) for value in row)
+        for row in result_values
+    )
+
+    first_index = int(valid_indexes[0])
+    last_index = int(valid_indexes[-1])
+
     velocities = [
         value
         for value in (_finite_float_or_none(item.velocity) for item in series_list)
@@ -209,11 +191,11 @@ def calculate_mean_series(
     ]
 
     return MeanSeriesResult(
-        dates=tuple(result_dates),
-        mean_values=tuple(mean_values),
-        std_values=tuple(std_values),
-        counts=tuple(counts),
-        individual_values=tuple(individual_rows),
+        dates=result_dates,
+        mean_values=mean_values,
+        std_values=std_values,
+        counts=counts,
+        individual_values=individual_rows,
         series_count=len(series_list),
         common_interval=bool(common_interval),
         reference_zero=bool(reference_zero),
@@ -224,6 +206,31 @@ def calculate_mean_series(
         mean_velocity_std=fmean(velocity_stds) if velocity_stds else None,
         cumulative_displacement=float(mean_values[last_index]),
     )
+
+
+def _ordered_dates_for_series(series_list: Sequence) -> tuple:
+    complete_date_set = set()
+    for series in series_list:
+        complete_date_set.update(series.dates)
+    return tuple(sorted(complete_date_set))
+
+
+def _series_value_matrix(series_list: Sequence, ordered_dates: Sequence) -> np.ndarray:
+    date_index = {item_date: index for index, item_date in enumerate(ordered_dates)}
+    matrix = np.full((len(series_list), len(ordered_dates)), np.nan, dtype=float)
+
+    for row_index, series in enumerate(series_list):
+        for acquisition_date, raw_value in zip(series.dates, series.values):
+            value = _finite_float_or_none(raw_value)
+            if value is not None:
+                matrix[row_index, date_index[acquisition_date]] = value
+
+    return matrix
+
+
+def _none_if_nan(value) -> Optional[float]:
+    numeric = float(value)
+    return None if math.isnan(numeric) else numeric
 
 
 def _finite_float_or_none(value) -> Optional[float]:
