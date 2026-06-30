@@ -11,11 +11,13 @@ from __future__ import annotations
 
 from collections import Counter
 from dataclasses import dataclass, replace
+import time
 from typing import Optional, Sequence, Tuple
 
 from qgis.core import QgsFeature, QgsFeatureRequest, QgsSpatialIndex, QgsVectorLayer
 
 from .i18n import tr
+from .performance import log_performance
 from .insar_timeseries_reader import (
     FeatureReadError,
     LayerSchema,
@@ -129,6 +131,14 @@ def calculate_polygon_mean_groups(
     if not polygon_features:
         raise PolygonMeanError(tr("Nenhum polígono foi fornecido para o cálculo."))
 
+    operation_start = time.perf_counter()
+    spatial_seconds = 0.0
+    read_seconds = 0.0
+    statistics_seconds = 0.0
+    point_memberships = 0
+    cache_hits = 0
+    cache_misses = 0
+
     valid_name_field = _validated_name_field(polygon_layer, name_field)
     series_cache = {}
     raw_groups = []
@@ -142,6 +152,7 @@ def calculate_polygon_mean_groups(
             if not polygon_feature.isValid() or not polygon_feature.hasGeometry():
                 raise PolygonMeanError(tr("feição sem geometria poligonal válida"))
 
+            spatial_start = time.perf_counter()
             target_geometry = polygon_in_target_crs(
                 polygon_feature.geometry(),
                 polygon_layer.crs(),
@@ -152,6 +163,8 @@ def calculate_polygon_mean_groups(
                 target_geometry,
                 spatial_index,
             )
+            spatial_seconds += time.perf_counter() - spatial_start
+            point_memberships += len(point_ids)
             if not point_ids:
                 without_points.append(polygon_fid)
                 continue
@@ -161,6 +174,8 @@ def calculate_polygon_mean_groups(
             point_errors = []
             for point_id in point_ids:
                 if point_id not in series_cache:
+                    cache_misses += 1
+                    read_start = time.perf_counter()
                     point_feature = point_layer.getFeature(point_id)
                     try:
                         series_cache[point_id] = read_feature(
@@ -170,6 +185,9 @@ def calculate_polygon_mean_groups(
                         )
                     except (FeatureReadError, LayerValidationError) as exc:
                         series_cache[point_id] = exc
+                    read_seconds += time.perf_counter() - read_start
+                else:
+                    cache_hits += 1
 
                 cached = series_cache[point_id]
                 if isinstance(cached, Exception):
@@ -183,12 +201,14 @@ def calculate_polygon_mean_groups(
                     tr("nenhum dos pontos contidos possui série temporal válida")
                 )
 
+            statistics_start = time.perf_counter()
             result = calculate_mean_series(
                 series_list,
                 common_interval=common_interval,
                 reference_zero=reference_zero,
                 minimum_series=1,
             )
+            statistics_seconds += time.perf_counter() - statistics_start
             label = _feature_label(
                 polygon_feature,
                 valid_name_field,
@@ -225,6 +245,33 @@ def calculate_polygon_mean_groups(
         raise PolygonMeanError(
             tr("Nenhuma média poligonal pôde ser calculada: {detail}", detail=detail)
         )
+
+    log_performance(
+        "polygon mean spatial lookup",
+        spatial_seconds,
+        polygons=len(polygon_features),
+        point_memberships=point_memberships,
+    )
+    log_performance(
+        "polygon mean series reads",
+        read_seconds,
+        unique_points=len(series_cache),
+        cache_hits=cache_hits,
+        cache_misses=cache_misses,
+    )
+    log_performance(
+        "polygon mean statistics",
+        statistics_seconds,
+        groups=len(groups),
+        point_memberships=point_memberships,
+    )
+    log_performance(
+        "polygon mean calculation internal total",
+        time.perf_counter() - operation_start,
+        groups=len(groups),
+        requested_polygons=len(polygon_features),
+        point_memberships=point_memberships,
+    )
 
     return PolygonMeanBatchResult(
         groups=tuple(groups),

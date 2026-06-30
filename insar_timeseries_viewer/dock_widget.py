@@ -8,7 +8,6 @@ from __future__ import annotations
 from collections import Counter
 from datetime import date
 import html
-import logging
 import json
 import math
 from pathlib import Path
@@ -46,11 +45,9 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 from qgis.core import (
-    Qgis,
     QgsCoordinateTransform,
     QgsCsException,
     QgsGeometry,
-    QgsMessageLog,
     QgsProject,
     QgsRectangle,
     QgsVectorLayer,
@@ -106,6 +103,7 @@ from .plot_presets import (
     available_plot_presets,
 )
 from .plot_settings import PlotSettings, PROJECT_SCOPE
+from .performance import log_performance as _log_performance
 from .additional_properties import (
     property_field_candidates,
     summarize_group_means,
@@ -168,25 +166,6 @@ UI_SETTINGS_WIDTH_KEY = "/ui/settings_panel_width"
 UI_LAYER_REPORT_VISIBLE_KEY = "/ui/layer_report_visible"
 DEFAULT_SETTINGS_PANEL_WIDTH = 330
 ADDITIONAL_FIELDS_PREFIX = "/additional_fields"
-
-LOGGER = logging.getLogger(__name__)
-PERFORMANCE_LOG_CHANNEL = "InSAR Time Series Viewer"
-
-
-def _log_performance(event: str, elapsed_seconds: float, **context) -> None:
-    """Log coarse performance timings for interactive diagnostics."""
-
-    details = " | ".join(
-        f"{key}={value}" for key, value in context.items() if value is not None
-    )
-    message = f"{event}: {elapsed_seconds:.3f}s"
-    if details:
-        message = f"{message} | {details}"
-    LOGGER.info(message)
-    try:
-        QgsMessageLog.logMessage(message, PERFORMANCE_LOG_CHANNEL, Qgis.Info)
-    except (RuntimeError, AttributeError):
-        pass
 
 
 class TimeSeriesDockWidget(QDockWidget):
