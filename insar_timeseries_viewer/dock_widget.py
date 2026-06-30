@@ -196,6 +196,7 @@ class TimeSeriesDockWidget(QDockWidget):
         self._active_feature_rubber_band = None
         self._has_displayed_area = False
         self._point_spatial_index = None
+        self._series_read_cache: dict[int, object] = {}
         self._polygon_mean_batch: Optional[PolygonMeanBatchResult] = None
         self._displayed_mode: Optional[str] = None
         self._displayed_series: list[TimeSeriesData] = []
@@ -1163,6 +1164,7 @@ class TimeSeriesDockWidget(QDockWidget):
         self._clear_drawn_area(update_status=False)
         self._clear_active_feature_marker()
         self._point_spatial_index = None
+        self._series_read_cache.clear()
         self._polygon_mean_batch = None
         self.settings = PlotSettings()
         self._load_ui_state()
@@ -1173,6 +1175,7 @@ class TimeSeriesDockWidget(QDockWidget):
         self._clear_drawn_area(update_status=False)
         self._clear_active_feature_marker()
         self._point_spatial_index = None
+        self._series_read_cache.clear()
         self._polygon_mean_batch = None
         self.settings = PlotSettings.load(self.project)
         self._load_ui_state()
@@ -1307,6 +1310,7 @@ class TimeSeriesDockWidget(QDockWidget):
         self.current_feature_id = None
         self.current_orbit_override = ORBIT_AUTO
         self._point_spatial_index = None
+        self._series_read_cache.clear()
         self._polygon_mean_batch = None
         if hasattr(self, "polygon_mean_status_label"):
             self._set_polygon_mean_status(
@@ -1348,6 +1352,9 @@ class TimeSeriesDockWidget(QDockWidget):
         self.current_layer.featureAdded.connect(self._invalidate_spatial_index)
         self.current_layer.featureDeleted.connect(self._invalidate_spatial_index)
         self.current_layer.geometryChanged.connect(self._invalidate_spatial_index)
+        self.current_layer.attributeValueChanged.connect(self._invalidate_series_cache)
+        self.current_layer.featureAdded.connect(self._invalidate_series_cache)
+        self.current_layer.featureDeleted.connect(self._invalidate_series_cache)
 
         self._sync_orbit_control()
         self._sync_x_dates_for_schema(schema)
@@ -1427,6 +1434,13 @@ class TimeSeriesDockWidget(QDockWidget):
                 )
             except (AttributeError, TypeError, RuntimeError):
                 pass
+        for signal_name in ("attributeValueChanged", "featureAdded", "featureDeleted"):
+            try:
+                getattr(self.current_layer, signal_name).disconnect(
+                    self._invalidate_series_cache
+                )
+            except (AttributeError, TypeError, RuntimeError):
+                pass
         self._point_spatial_index = None
 
     def _current_layer_id_safe(self):
@@ -1443,6 +1457,7 @@ class TimeSeriesDockWidget(QDockWidget):
         self.current_layer = None
         self.current_schema = None
         self.current_feature_id = None
+        self._series_read_cache.clear()
         self.refresh_layers()
         index = self.layer_combo.findData(layer_id)
         if index >= 0:
@@ -1816,6 +1831,7 @@ class TimeSeriesDockWidget(QDockWidget):
                 common_interval=self.settings.mean_common_interval,
                 reference_zero=self.settings.mean_reference_zero,
                 selected_only=selected_only,
+                series_cache=self._series_read_cache,
             )
         except PolygonMeanError as exc:
             self._polygon_mean_batch = None
@@ -2083,11 +2099,16 @@ class TimeSeriesDockWidget(QDockWidget):
 
     def _invalidate_spatial_index(self, *_args) -> None:
         self._point_spatial_index = None
+        self._series_read_cache.clear()
         self._polygon_mean_batch = None
         if hasattr(self, "polygon_mean_status_label"):
             self._set_polygon_mean_status(
                 "Os pontos foram alterados; recalcule as médias por polígonos."
             )
+
+    def _invalidate_series_cache(self, *_args) -> None:
+        self._series_read_cache.clear()
+        self._polygon_mean_batch = None
 
     def _dispose_area_tools(self) -> None:
         self._restore_previous_map_tool()
@@ -2772,14 +2793,25 @@ class TimeSeriesDockWidget(QDockWidget):
         if layer is None or schema is None:
             return None, tr("Nenhuma camada ativa no visualizador.")
 
+        feature_id = int(feature_id)
+        if feature_id in self._series_read_cache:
+            cached = self._series_read_cache[feature_id]
+            if isinstance(cached, Exception):
+                return None, f"FID {feature_id}: {cached}"
+            return cached, None
+
         feature = layer.getFeature(feature_id)
         if feature is None or not feature.isValid():
             return None, tr("FID {fid}: feição inválida ou removida.", fid=feature_id)
 
         try:
-            return read_feature(layer, feature, schema=schema), None
+            series = read_feature(layer, feature, schema=schema)
         except (FeatureReadError, LayerValidationError) as exc:
+            self._series_read_cache[feature_id] = exc
             return None, f"FID {feature_id}: {exc}"
+
+        self._series_read_cache[feature_id] = series
+        return series, None
 
     # --------------------------------------------------------------- chart
     def _display_series_list(self, series_list: Sequence[TimeSeriesData]) -> list[str]:

@@ -122,6 +122,7 @@ def calculate_polygon_mean_groups(
     common_interval: bool,
     reference_zero: bool,
     selected_only: bool,
+    series_cache: Optional[dict[int, object]] = None,
 ) -> PolygonMeanBatchResult:
     """Calcula uma série média independente para cada polígono fornecido."""
     if point_layer is None or not point_layer.isValid():
@@ -138,9 +139,11 @@ def calculate_polygon_mean_groups(
     point_memberships = 0
     cache_hits = 0
     cache_misses = 0
+    point_ids_seen = set()
 
     valid_name_field = _validated_name_field(polygon_layer, name_field)
-    series_cache = {}
+    if series_cache is None:
+        series_cache = {}
     raw_groups = []
     without_points = []
     with_errors = []
@@ -173,6 +176,8 @@ def calculate_polygon_mean_groups(
             valid_point_ids = []
             point_errors = []
             for point_id in point_ids:
+                point_id = int(point_id)
+                point_ids_seen.add(point_id)
                 if point_id not in series_cache:
                     cache_misses += 1
                     read_start = time.perf_counter()
@@ -255,7 +260,8 @@ def calculate_polygon_mean_groups(
     log_performance(
         "polygon mean series reads",
         read_seconds,
-        unique_points=len(series_cache),
+        unique_points=len(point_ids_seen),
+        cache_size=len(series_cache),
         cache_hits=cache_hits,
         cache_misses=cache_misses,
     )
