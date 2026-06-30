@@ -167,39 +167,43 @@ def calculate_polygon_mean_groups(
                 spatial_index,
             )
             spatial_seconds += time.perf_counter() - spatial_start
-            point_memberships += len(point_ids)
-            if not point_ids:
+            normalized_point_ids = [int(point_id) for point_id in point_ids]
+            point_memberships += len(normalized_point_ids)
+            if not normalized_point_ids:
                 without_points.append(polygon_fid)
                 continue
+
+            for point_id in normalized_point_ids:
+                point_ids_seen.add(point_id)
+
+            missing_point_ids = [
+                point_id
+                for point_id in normalized_point_ids
+                if point_id not in series_cache
+            ]
+            cache_hits += len(normalized_point_ids) - len(missing_point_ids)
+            cache_misses += len(missing_point_ids)
+
+            if missing_point_ids:
+                read_start = time.perf_counter()
+                _read_missing_series(
+                    point_layer,
+                    point_schema,
+                    missing_point_ids,
+                    series_cache,
+                )
+                read_seconds += time.perf_counter() - read_start
 
             series_list = []
             valid_point_ids = []
             point_errors = []
-            for point_id in point_ids:
-                point_id = int(point_id)
-                point_ids_seen.add(point_id)
-                if point_id not in series_cache:
-                    cache_misses += 1
-                    read_start = time.perf_counter()
-                    point_feature = point_layer.getFeature(point_id)
-                    try:
-                        series_cache[point_id] = read_feature(
-                            point_layer,
-                            point_feature,
-                            schema=point_schema,
-                        )
-                    except (FeatureReadError, LayerValidationError) as exc:
-                        series_cache[point_id] = exc
-                    read_seconds += time.perf_counter() - read_start
-                else:
-                    cache_hits += 1
-
-                cached = series_cache[point_id]
+            for point_id in normalized_point_ids:
+                cached = series_cache.get(point_id)
                 if isinstance(cached, Exception):
                     point_errors.append(f"FID {point_id}: {cached}")
                 else:
                     series_list.append(cached)
-                    valid_point_ids.append(int(point_id))
+                    valid_point_ids.append(point_id)
 
             if not series_list:
                 raise PolygonMeanError(
@@ -291,6 +295,39 @@ def calculate_polygon_mean_groups(
         name_field=valid_name_field,
         selected_only=bool(selected_only),
     )
+
+
+def _read_missing_series(
+    point_layer: QgsVectorLayer,
+    point_schema: LayerSchema,
+    point_ids: Sequence[int],
+    series_cache: dict[int, object],
+) -> None:
+    """Read missing point time series in batches instead of one getFeature call per ID."""
+
+    unique_ids = list(dict.fromkeys(int(point_id) for point_id in point_ids))
+    if not unique_ids:
+        return
+
+    fetched_ids = set()
+    request = QgsFeatureRequest().setFilterFids(unique_ids)
+    for point_feature in point_layer.getFeatures(request):
+        point_id = int(point_feature.id())
+        fetched_ids.add(point_id)
+        try:
+            series_cache[point_id] = read_feature(
+                point_layer,
+                point_feature,
+                schema=point_schema,
+            )
+        except (FeatureReadError, LayerValidationError) as exc:
+            series_cache[point_id] = exc
+
+    for point_id in unique_ids:
+        if point_id not in fetched_ids:
+            series_cache[point_id] = FeatureReadError(
+                tr("feição inválida ou removida")
+            )
 
 
 def _validated_name_field(
