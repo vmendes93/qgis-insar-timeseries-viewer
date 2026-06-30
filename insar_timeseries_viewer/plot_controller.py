@@ -43,6 +43,8 @@ def render_time_series(
     labels: Sequence[str],
     settings: PlotSettings,
     component_label: str,
+    *,
+    show_single_series_header: bool = True,
 ) -> list[str]:
     """Desenha uma ou mais séries no mesmo eixo."""
     warnings: list[str] = []
@@ -65,7 +67,10 @@ def render_time_series(
         axes.axhline(0.0, linewidth=0.8, linestyle="--", color="0.35", zorder=0.4)
 
     if len(series_list) == 1:
-        _apply_single_series_header(axes, series_list[0], component_label)
+        if show_single_series_header:
+            _apply_single_series_header(axes, series_list[0], component_label)
+        else:
+            axes.set_title(f"{series_list[0].identifier} — {component_label}")
     else:
         axes.set_title(
             tr(

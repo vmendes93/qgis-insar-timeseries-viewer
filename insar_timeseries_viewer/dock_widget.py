@@ -3246,6 +3246,7 @@ class TimeSeriesDockWidget(QDockWidget):
                     self._displayed_labels,
                     self.settings,
                     component_label,
+                    show_single_series_header=False,
                 )
         else:
             raise ValueError(tr("O estado atual do gráfico não contém dados exportáveis."))
@@ -3265,6 +3266,7 @@ class TimeSeriesDockWidget(QDockWidget):
             [label],
             self.settings,
             self._effective_component_label(),
+            show_single_series_header=False,
         )
         self._finish_export_figure(figure, self._series_export_header(series))
         return figure
