@@ -266,7 +266,20 @@ def render_polygon_mean_series(
     if settings.show_zero_line:
         axes.axhline(0.0, linewidth=0.8, linestyle="--", color="0.35", zorder=0.4)
 
-    axes.set_title(tr("Médias de {count} polígonos — {component}", count=len(groups), component=component_label))
+    if len(groups) == 1:
+        axes.set_title(
+            _polygon_mean_title(groups[0], component_label),
+            loc="left",
+            fontsize="medium",
+        )
+    else:
+        axes.set_title(
+            tr(
+                "Médias de {count} polígonos — {component}",
+                count=len(groups),
+                component=component_label,
+            )
+        )
     x_start = min(group.result.first_valid_date for group in groups)
     x_end = max(group.result.last_valid_date for group in groups)
     _decorate_axis_for_range(
@@ -323,15 +336,11 @@ def render_separate_polygon_mean_series(
                 color="0.35",
                 zorder=0.4,
             )
-        noun = tr("ponto") if group.point_count == 1 else tr("pontos")
-        if group.label.casefold().startswith(("média de ", "mean of ")):
-            title = f"{group.label} — {component_label}"
-        else:
-            title = (
-                f"{group.label} — {tr('média de')} {group.point_count} {noun} — "
-                f"{component_label}"
-            )
-        axes.set_title(title, loc="left", fontsize="medium")
+        axes.set_title(
+            _polygon_mean_title(group, component_label),
+            loc="left",
+            fontsize="medium",
+        )
         _decorate_axis_for_range(
             axes,
             x_start,
@@ -404,6 +413,16 @@ def _plot_mean_group(
             alpha=0.14,
             zorder=2,
         )
+
+
+def _polygon_mean_title(group: PolygonMeanGroup, component_label: str) -> str:
+    noun = tr("ponto") if group.point_count == 1 else tr("pontos")
+    if group.label.casefold().startswith(("média de ", "mean of ")):
+        return f"{group.label} — {component_label}"
+    return (
+        f"{group.label} — {tr('média de')} {group.point_count} {noun} — "
+        f"{component_label}"
+    )
 
 
 def render_message(figure, message: str) -> None:
