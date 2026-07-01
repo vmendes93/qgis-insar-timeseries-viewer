@@ -20,7 +20,7 @@ classifiers = [
 [project.optional-dependencies]
 dev = [
   "numpy>=1.26,<3",
-  "pyshp>=2.3,<3",
+  "pyshp>=2.3,<4",
   "pytest>=8",
   "ruff>=0.8",
   "bandit>=1.9,<2",
